@@ -11,6 +11,9 @@ class Pickup {
   double width = 16;
   double height = 16;
 
+  // Custom value (overrides default if set)
+  int? customValue;
+
   // Animation
   double bobPhase;
   double bobSpeed = 4.0;
@@ -29,6 +32,7 @@ class Pickup {
   Pickup({
     required this.position,
     required this.type,
+    this.customValue,
     Vector2? initialVelocity,
   }) : velocity = initialVelocity ?? Vector2(
          (Random().nextDouble() - 0.5) * 200,
@@ -91,6 +95,10 @@ class Pickup {
 
   // Get the value of this pickup
   int get value {
+    // Use custom value if set
+    if (customValue != null) return customValue!;
+
+    // Default values
     switch (type) {
       case PickupType.health:
         return 20;

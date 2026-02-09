@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import '../economy/currency_manager.dart';
 import '../entities/enemy.dart';
 import '../entities/pickup.dart';
 import '../entities/player.dart';
@@ -10,6 +11,9 @@ import 'particle_system.dart';
 class CombatSystem {
   final DamageNumberManager damageNumbers = DamageNumberManager();
   final ParticleSystem particles = ParticleSystem();
+
+  // Currency manager reference (set by game world)
+  CurrencyManager? currencyManager;
 
   // Pending pickups to spawn (handled by game world)
   final List<Pickup> pendingPickups = [];
@@ -137,7 +141,12 @@ class CombatSystem {
             break;
 
           case PickupType.coin:
-            // TODO: Add to player gold
+            currencyManager?.addGold(pickup.value);
+            damageNumbers.spawn(
+              player.position + Vector2(0, -20),
+              pickup.value.toDouble(),
+              isGold: true,
+            );
             particles.spawnPickupEffect(
               pickup.position,
               const Color(0xFFFFDD00),
@@ -145,7 +154,12 @@ class CombatSystem {
             break;
 
           case PickupType.essence:
-            // TODO: Add to player essence
+            currencyManager?.addEssence(pickup.value);
+            damageNumbers.spawn(
+              player.position + Vector2(0, -20),
+              pickup.value.toDouble(),
+              isEssence: true,
+            );
             particles.spawnPickupEffect(
               pickup.position,
               const Color(0xFFAA00FF),
@@ -163,12 +177,13 @@ class CombatSystem {
       const Color(0xFFFF6600),
     );
 
-    // Spawn drops
+    // Spawn drops using loot table
     final drops = enemy.getDrops();
-    for (final dropType in drops) {
+    for (final drop in drops) {
       pendingPickups.add(Pickup(
         position: enemy.position.copy(),
-        type: dropType,
+        type: drop.type,
+        customValue: drop.value,
       ));
     }
   }

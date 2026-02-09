@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import '../dungeon/platform.dart';
+import '../economy/loot_table.dart';
 import '../utils/math_utils.dart';
 import 'entity.dart';
 
@@ -44,6 +45,9 @@ abstract class Enemy extends Entity {
 
   // Pathfinding
   List<Platform> platforms = [];
+
+  // Floor tracking for loot scaling
+  int currentFloor = 1;
 
   Enemy({
     required Vector2 position,
@@ -263,7 +267,7 @@ abstract class Enemy extends Entity {
   }
 
   // Get drops when killed (override in subclasses)
-  List<PickupType> getDrops() => [];
+  List<DropInfo> getDrops() => [];
 }
 
 enum PickupType {

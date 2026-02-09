@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import '../data/constants.dart';
 import '../dungeon/platform.dart';
+import '../game/game_state.dart';
 import '../game/game_world.dart';
 import '../utils/math_utils.dart';
 import 'effects_renderer.dart';
 import 'enemy_renderer.dart';
+import 'hub_renderer.dart';
 import 'player_renderer.dart';
 import 'portal_renderer.dart';
 
@@ -15,6 +17,7 @@ class GamePainter extends CustomPainter {
   final EnemyRenderer _enemyRenderer = EnemyRenderer();
   final EffectsRenderer _effectsRenderer = EffectsRenderer();
   final PortalRenderer _portalRenderer = PortalRenderer();
+  final HubRenderer _hubRenderer = HubRenderer();
 
   GamePainter({required this.world});
 
@@ -31,6 +34,13 @@ class GamePainter extends CustomPainter {
     // Draw exit portal (behind entities)
     _portalRenderer.render(canvas, world.exitPortal, cameraOffset);
 
+    // Draw hub elements (vendors, decorations)
+    if (world.gameState == GameState.hub) {
+      _hubRenderer.render(
+        canvas, size, world.vendors, cameraOffset, world.player.position,
+      );
+    }
+
     // Draw pickups (behind entities)
     _effectsRenderer.renderPickups(canvas, world.pickups, cameraOffset);
 
@@ -46,8 +56,38 @@ class GamePainter extends CustomPainter {
     // Draw damage numbers (on top of everything in game world)
     _effectsRenderer.renderDamageNumbers(canvas, world.combat.damageNumbers, cameraOffset);
 
+    // Draw hub portal prompt
+    if (world.gameState == GameState.hub && world.exitPortal != null) {
+      if (world.exitPortal!.isPlayerInRange(world.player.position)) {
+        final promptPainter = TextPainter(
+          text: const TextSpan(
+            text: 'Press E to Enter Dungeon',
+            style: TextStyle(
+              color: Color(0xFF00FF88),
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'monospace',
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        promptPainter.layout();
+        final portalScreenX = world.exitPortal!.position.x - cameraOffset.x;
+        final portalScreenY = world.exitPortal!.position.y - cameraOffset.y;
+        promptPainter.paint(
+          canvas,
+          Offset(portalScreenX - promptPainter.width / 2, portalScreenY - 60),
+        );
+      }
+    }
+
     // Draw HUD (on top of everything)
     _drawHUD(canvas, size);
+
+    // Draw death overlay
+    if (world.gameState == GameState.dungeon && world.player.isDead) {
+      _drawDeathOverlay(canvas, size);
+    }
 
     // Draw transition overlay
     if (world.isTransitioning) {
@@ -66,11 +106,11 @@ class GamePainter extends CustomPainter {
       ..color = Colors.black.withValues(alpha: alpha.clamp(0, 1));
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
 
-    // Show floor number text at peak
+    // Show contextual text at peak
     if (progress > 0.3 && progress < 0.7) {
       final textPainter = TextPainter(
         text: TextSpan(
-          text: 'Floor ${world.currentFloor + 1}',
+          text: world.transitionText,
           style: TextStyle(
             color: Colors.white.withValues(alpha: (1.0 - (progress - 0.5).abs() * 5).clamp(0, 1)),
             fontSize: 48,
@@ -88,17 +128,70 @@ class GamePainter extends CustomPainter {
     }
   }
 
+  void _drawDeathOverlay(Canvas canvas, Size size) {
+    // Red tint
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()..color = Colors.red.withValues(alpha: 0.2),
+    );
+
+    // "YOU DIED" text
+    final deathText = TextPainter(
+      text: const TextSpan(
+        text: 'YOU DIED',
+        style: TextStyle(
+          color: Color(0xFFFF4444),
+          fontSize: 48,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'monospace',
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    deathText.layout();
+    deathText.paint(
+      canvas,
+      Offset(size.width / 2 - deathText.width / 2, size.height / 2 - 50),
+    );
+
+    // Gold loss info
+    final lostGold = (world.currencyManager.sessionGold * 0.5).round();
+    if (lostGold > 0) {
+      final lossText = TextPainter(
+        text: TextSpan(
+          text: '-${lostGold}g',
+          style: const TextStyle(
+            color: Color(0xFFFFDD00),
+            fontSize: 20,
+            fontFamily: 'monospace',
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      lossText.layout();
+      lossText.paint(
+        canvas,
+        Offset(size.width / 2 - lossText.width / 2, size.height / 2 + 20),
+      );
+    }
+  }
+
   void _drawBackground(Canvas canvas, Size size) {
-    final bgColor = getFloorBackgroundColor(world.currentFloor);
+    final bgColor = world.gameState == GameState.hub
+        ? const Color(0xFF0A0818)
+        : getFloorBackgroundColor(world.currentFloor);
     final paint = Paint()..color = bgColor;
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
 
     // Add subtle gradient overlay
+    final topColor = world.gameState == GameState.hub
+        ? const Color(0xFF120828).withValues(alpha: 0.5)
+        : bgColor.withValues(alpha: 0.5);
     final gradient = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
       colors: [
-        bgColor.withValues(alpha: 0.5),
+        topColor,
         bgColor,
         bgColor.withValues(alpha: 0.8),
       ],
@@ -111,7 +204,9 @@ class GamePainter extends CustomPainter {
   }
 
   void _drawPlatforms(Canvas canvas, Vector2 cameraOffset) {
-    final floorColor = getFloorPrimaryColor(world.currentFloor);
+    final floorColor = world.gameState == GameState.hub
+        ? const Color(0xFF00FFFF)
+        : getFloorPrimaryColor(world.currentFloor);
 
     for (final platform in world.platforms) {
       _drawPlatform(canvas, platform, cameraOffset, floorColor);
@@ -190,21 +285,38 @@ class GamePainter extends CustomPainter {
     fpsText.layout();
     fpsText.paint(canvas, Offset(size.width - fpsText.width - 10, 10));
 
-    // Floor info
-    final floorText = TextPainter(
-      text: TextSpan(
-        text: 'Floor: ${world.currentFloor}',
-        style: TextStyle(
-          color: getFloorPrimaryColor(world.currentFloor),
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'monospace',
+    // Location info (top left)
+    if (world.gameState == GameState.hub) {
+      final hubText = TextPainter(
+        text: const TextSpan(
+          text: 'HUB',
+          style: TextStyle(
+            color: Color(0xFF00FFFF),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'monospace',
+          ),
         ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    floorText.layout();
-    floorText.paint(canvas, const Offset(10, 10));
+        textDirection: TextDirection.ltr,
+      );
+      hubText.layout();
+      hubText.paint(canvas, const Offset(10, 10));
+    } else {
+      final floorText = TextPainter(
+        text: TextSpan(
+          text: 'Floor: ${world.currentFloor}',
+          style: TextStyle(
+            color: getFloorPrimaryColor(world.currentFloor),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'monospace',
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      floorText.layout();
+      floorText.paint(canvas, const Offset(10, 10));
+    }
 
     // Player HP bar
     final player = world.player;
@@ -231,26 +343,34 @@ class GamePainter extends CustomPainter {
       label: 'EN',
     );
 
-    // Enemy count
-    final enemyText = TextPainter(
-      text: TextSpan(
-        text: 'Enemies: ${world.enemies.length}',
-        style: const TextStyle(
-          color: Colors.white54,
-          fontSize: 12,
-          fontFamily: 'monospace',
+    // Enemy count (dungeon only)
+    if (world.gameState == GameState.dungeon) {
+      final enemyText = TextPainter(
+        text: TextSpan(
+          text: 'Enemies: ${world.enemies.length}',
+          style: const TextStyle(
+            color: Colors.white54,
+            fontSize: 12,
+            fontFamily: 'monospace',
+          ),
         ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    enemyText.layout();
-    enemyText.paint(canvas, const Offset(10, 70));
+        textDirection: TextDirection.ltr,
+      );
+      enemyText.layout();
+      enemyText.paint(canvas, const Offset(10, 70));
+    }
+
+    // Currency display (top right, below FPS)
+    _drawCurrencyHUD(canvas, size);
 
     // Controls hint
+    final controlsHint = world.gameState == GameState.hub
+        ? 'WASD: Move | Space: Jump | E: Interact'
+        : 'WASD: Move | Space: Jump | K/Shift: Dash | J/Z: Attack';
     final controlsText = TextPainter(
-      text: const TextSpan(
-        text: 'WASD: Move | Space: Jump | K/Shift: Dash | J/Z: Attack',
-        style: TextStyle(
+      text: TextSpan(
+        text: controlsHint,
+        style: const TextStyle(
           color: Colors.white38,
           fontSize: 12,
           fontFamily: 'monospace',
@@ -263,6 +383,126 @@ class GamePainter extends CustomPainter {
       canvas,
       Offset(size.width / 2 - controlsText.width / 2, size.height - 30),
     );
+  }
+
+  void _drawCurrencyHUD(Canvas canvas, Size size) {
+    final currency = world.currencyManager;
+
+    // Gold display with coin icon
+    final goldY = 30.0;
+    final goldX = size.width - 120;
+
+    // Draw gold coin icon (yellow circle)
+    final coinPaint = Paint()..color = const Color(0xFFFFDD00);
+    canvas.drawCircle(Offset(goldX, goldY), 8, coinPaint);
+    final coinHighlight = Paint()
+      ..color = const Color(0xFFFFFFAA)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    canvas.drawCircle(Offset(goldX - 2, goldY - 2), 4, coinHighlight);
+
+    // Gold amount text
+    final goldText = TextPainter(
+      text: TextSpan(
+        text: '${currency.gold}',
+        style: const TextStyle(
+          color: Color(0xFFFFDD00),
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'monospace',
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    goldText.layout();
+    goldText.paint(canvas, Offset(goldX + 14, goldY - goldText.height / 2));
+
+    // Essence display with star icon
+    final essenceY = 52.0;
+    final essenceX = size.width - 120;
+
+    // Draw essence star icon (purple star)
+    _drawStar(canvas, Offset(essenceX, essenceY), 8, const Color(0xFFAA00FF));
+
+    // Essence amount text
+    final essenceText = TextPainter(
+      text: TextSpan(
+        text: '${currency.essence}',
+        style: const TextStyle(
+          color: Color(0xFFAA00FF),
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'monospace',
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    essenceText.layout();
+    essenceText.paint(canvas, Offset(essenceX + 14, essenceY - essenceText.height / 2));
+  }
+
+  void _drawStar(Canvas canvas, Offset center, double radius, Color color) {
+    final paint = Paint()..color = color;
+    final path = Path();
+
+    const pi = 3.14159265;
+    final outerRadius = radius;
+    final innerRadius = radius * 0.4;
+
+    // Draw 5-point star (10 points alternating outer/inner)
+    for (int i = 0; i < 10; i++) {
+      final r = i.isEven ? outerRadius : innerRadius;
+      final angle = (i * 36 - 90) * pi / 180;
+      // Use simple trig
+      final starX = center.dx + r * _cosApprox(angle);
+      final starY = center.dy + r * _sinApprox(angle);
+      if (i == 0) {
+        path.moveTo(starX, starY);
+      } else {
+        path.lineTo(starX, starY);
+      }
+    }
+    path.close();
+
+    // Add glow
+    final glowPaint = Paint()
+      ..color = color.withValues(alpha: 0.3)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+    canvas.drawPath(path, glowPaint);
+
+    canvas.drawPath(path, paint);
+  }
+
+  // Simple cosine approximation
+  double _cosApprox(double x) {
+    const pi = 3.14159265;
+    const twoPi = 6.28318530;
+    // Normalize to [-pi, pi]
+    while (x > pi) {
+      x -= twoPi;
+    }
+    while (x < -pi) {
+      x += twoPi;
+    }
+    // Taylor series approximation
+    final x2 = x * x;
+    return 1 - x2 / 2 + x2 * x2 / 24 - x2 * x2 * x2 / 720;
+  }
+
+  // Simple sine approximation
+  double _sinApprox(double x) {
+    const pi = 3.14159265;
+    const twoPi = 6.28318530;
+    // Normalize to [-pi, pi]
+    while (x > pi) {
+      x -= twoPi;
+    }
+    while (x < -pi) {
+      x += twoPi;
+    }
+    // Taylor series approximation
+    final x2 = x * x;
+    return x - x * x2 / 6 + x * x2 * x2 / 120 - x * x2 * x2 * x2 / 5040;
   }
 
   void _drawBar({

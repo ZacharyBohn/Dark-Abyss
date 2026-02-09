@@ -26,6 +26,9 @@ class _GameScreenState extends State<GameScreen>
     _engine.onUpdate = _onGameUpdate;
     _engine.start();
     _audioManager.playMusic();
+
+    // Initialize async components (save system)
+    _engine.world.initializeAsync();
   }
 
   void _onGameUpdate() {

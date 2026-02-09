@@ -53,75 +53,36 @@ class PlayerRenderer {
     final progress = 1.0 - (player.attackTimer / Player.attackDuration);
     final arcAngle = player.attackAngle;
 
-    // Arc sweep from -60 to +60 degrees relative to attack direction (wider arc)
+    // Arc sweep from -60 to +60 degrees relative to attack direction
     final sweepStart = arcAngle - pi / 3;
-    final sweepAngle = (2 * pi / 3) * progress;
+    final currentAngle = sweepStart + (2 * pi / 3) * progress;
 
-    // Outer flash burst (bright white flash at start)
-    if (progress < 0.5) {
-      final flashAlpha = (1.0 - progress * 2).clamp(0.0, 1.0);
-      final flashPaint = Paint()
-        ..color = Colors.white.withValues(alpha: flashAlpha * 0.8)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
-      canvas.drawCircle(
-        Offset(x + cos(arcAngle) * 40, y + sin(arcAngle) * 40),
-        50 * (1 - progress),
-        flashPaint,
-      );
-    }
-
-    // Main slash trail (thick, bright)
-    final slashPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.9 * (1 - progress * 0.5))
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 8 + (1 - progress) * 6 // Thicker at start
-      ..strokeCap = StrokeCap.round;
-
-    final slashRect = Rect.fromCenter(
-      center: Offset(x, y),
-      width: 160, // Bigger arc
-      height: 160,
-    );
-
-    canvas.drawArc(slashRect, sweepStart, sweepAngle, false, slashPaint);
-
-    // Bright core of slash
-    final corePaint = Paint()
-      ..color = const Color(0xFFFFFFFF).withValues(alpha: (1 - progress))
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-
-    canvas.drawArc(slashRect, sweepStart, sweepAngle, false, corePaint);
+    // Line extends from player center to a point that follows the arc
+    final lineLength = 80.0;
+    final endX = x + cos(currentAngle) * lineLength;
+    final endY = y + sin(currentAngle) * lineLength;
 
     // Outer glow (colored)
     final glowPaint = Paint()
       ..color = playerGlowColor.withValues(alpha: 0.6 * (1 - progress))
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 20
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+      ..strokeWidth = 12
+      ..strokeCap = StrokeCap.round
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+    canvas.drawLine(Offset(x, y), Offset(endX, endY), glowPaint);
 
-    canvas.drawArc(slashRect, sweepStart, sweepAngle, false, glowPaint);
+    // Main slash line (thick, bright)
+    final slashPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.9 * (1 - progress * 0.5))
+      ..strokeWidth = 6
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(x, y), Offset(endX, endY), slashPaint);
 
-    // Speed lines emanating from slash direction
-    if (progress < 0.7) {
-      final lineAlpha = (1.0 - progress / 0.7).clamp(0.0, 1.0);
-      final linePaint = Paint()
-        ..color = Colors.white.withValues(alpha: lineAlpha * 0.6)
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round;
-
-      for (var i = 0; i < 5; i++) {
-        final lineAngle = arcAngle + (i - 2) * 0.15;
-        final startDist = 50 + progress * 30;
-        final endDist = 80 + progress * 50;
-        canvas.drawLine(
-          Offset(x + cos(lineAngle) * startDist, y + sin(lineAngle) * startDist),
-          Offset(x + cos(lineAngle) * endDist, y + sin(lineAngle) * endDist),
-          linePaint,
-        );
-      }
-    }
+    // Bright core line
+    final corePaint = Paint()
+      ..color = const Color(0xFFFFFFFF).withValues(alpha: (1 - progress))
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(Offset(x, y), Offset(endX, endY), corePaint);
   }
 
   void _drawPlayerShape(

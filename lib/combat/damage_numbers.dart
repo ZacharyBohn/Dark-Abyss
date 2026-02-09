@@ -8,6 +8,8 @@ class DamageNumber {
   double value;
   bool isCritical;
   bool isHealing;
+  bool isGold;
+  bool isEssence;
 
   // Animation
   double lifetime = 1.0;
@@ -20,6 +22,8 @@ class DamageNumber {
     required this.value,
     this.isCritical = false,
     this.isHealing = false,
+    this.isGold = false,
+    this.isEssence = false,
   }) : velocity = Vector2(
          (Random().nextDouble() - 0.5) * 50,
          -100 - Random().nextDouble() * 50,
@@ -55,12 +59,24 @@ class DamageNumber {
     if (isHealing) {
       return '+${value.toInt()}';
     }
+    if (isGold) {
+      return '+${value.toInt()}g';
+    }
+    if (isEssence) {
+      return '+${value.toInt()}e';
+    }
     return value.toInt().toString();
   }
 
   Color get color {
     if (isHealing) {
       return const Color(0xFF00FF88);
+    }
+    if (isGold) {
+      return const Color(0xFFFFDD00);
+    }
+    if (isEssence) {
+      return const Color(0xFFAA00FF);
     }
     if (isCritical) {
       return const Color(0xFFFFAA00);
@@ -72,13 +88,21 @@ class DamageNumber {
 class DamageNumberManager {
   final List<DamageNumber> numbers = [];
 
-  void spawn(Vector2 position, double value,
-      {bool isCritical = false, bool isHealing = false}) {
+  void spawn(
+    Vector2 position,
+    double value, {
+    bool isCritical = false,
+    bool isHealing = false,
+    bool isGold = false,
+    bool isEssence = false,
+  }) {
     numbers.add(DamageNumber(
       position: position.copy(),
       value: value,
       isCritical: isCritical,
       isHealing: isHealing,
+      isGold: isGold,
+      isEssence: isEssence,
     ));
   }
 

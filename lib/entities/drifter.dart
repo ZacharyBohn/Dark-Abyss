@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import '../economy/loot_table.dart';
 import '../utils/math_utils.dart';
 import 'enemy.dart';
 
@@ -33,10 +34,10 @@ class Drifter extends Enemy {
          height: 30,
          maxHealth: 20,
          damage: 10,
-         moveSpeed: 80,
-         attackRange: 40,
-         attackCooldown: 1.5,
-         detectionRange: 300,
+         moveSpeed: 120,
+         attackRange: 160,
+         attackCooldown: 1.25,
+         detectionRange: 400,
        ) {
     wobblePhase = Random().nextDouble() * pi * 2;
     pulsePhase = Random().nextDouble() * pi * 2;
@@ -197,12 +198,8 @@ class Drifter extends Enemy {
   }
 
   @override
-  List<PickupType> getDrops() {
-    // 80% chance for energy, 20% chance for coin
-    if (Random().nextDouble() < 0.8) {
-      return [PickupType.energy];
-    } else {
-      return [PickupType.coin];
-    }
+  List<DropInfo> getDrops() {
+    // Use loot table with floor scaling
+    return LootTable.getDrifterDrops(shapeType, currentFloor);
   }
 }

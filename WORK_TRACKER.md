@@ -1,7 +1,18 @@
 # Abyss Runner - Work Tracker
 
-## Current Phase: Phase 4 - Dungeon Generation
-## Current Status: READY FOR TEST CHECKPOINT 4
+## Current Phase: Phase 6 - Hub/Base Room (COMPLETE)
+## Current Status: READY TO BEGIN PHASE 7
+
+## Upcoming Phases Overview
+| Phase | Focus | Key Deliverable |
+|-------|-------|-----------------|
+| 5 | Currency & Economy | Gold/essence drops, HUD currency, persistence |
+| 6 | Hub/Base Room | Safe hub area, vendor NPCs, game state flow |
+| 7 | Upgrade System | Button-based menus, stat/ability purchases |
+| 8 | Magic System | Mana, spells, projectiles, spell vendor |
+| 9 | Complex Dungeons | Traps, arenas, chests, puzzles, mini-map |
+| 10 | Boss Encounters | Phase-based boss fights every 5 floors |
+| 11 | Polish & Balance | Economy tuning, stats screen, sound effects |
 
 ## Progress Checklist
 
@@ -51,7 +62,176 @@
 - [x] 37. Add floor transition effect
 - [x] 38. **TEST CHECKPOINT 4: Procedural dungeon with multiple rooms**
 
-### Phase 5-9: (Future phases listed in design doc)
+### Phase 5: Currency & Economy System
+**Goal**: Add a robust currency system that rewards combat and enables progression
+- [x] 39. Create currency_manager.dart with gold and essence tracking
+- [x] 40. Update pickup.dart to have configurable drop values
+- [x] 41. Create loot_table.dart for enemy drop rates and scaling
+- [x] 42. Update drifter.dart to drop gold on death (scales with floor)
+- [x] 43. Add currency display to HUD (gold coin icon + count, essence star + count)
+- [x] 44. Create save_system.dart with SharedPreferences for persistent currency
+- [x] 45. Add floor completion gold bonus
+- [x] 46. **TEST CHECKPOINT 5: Kill enemies, see gold drop, HUD updates, persists on restart**
+
+### Phase 6: Hub/Base Room System
+**Goal**: Create a safe hub area between dungeon runs where players interact with vendors
+- [x] 47. Create hub_room.dart with static layout (safe zone, vendor areas, dungeon portal)
+- [x] 48. Create vendor.dart base class (NPC entity with interaction zone)
+- [x] 49. Create game_state.dart enum (hub, dungeon, menu) to manage game flow
+- [x] 50. Update game_world.dart to handle hub vs dungeon mode
+- [x] 51. Create hub_renderer.dart for vendor NPCs and decorations
+- [x] 52. Add dungeon portal in hub that starts a new run
+- [x] 53. Add return-to-hub on death (lose some gold, keep essence)
+- [ ] 54. **TEST CHECKPOINT 6: Start in hub, enter dungeon, die, return to hub**
+
+### Phase 7: Upgrade System & Vendor Menu
+**Goal**: Button-based upgrade menu accessed via vendors in the hub
+- [ ] 55. Create upgrade.dart with upgrade definitions (stat boosts, abilities)
+- [ ] 56. Create upgrade_manager.dart to track purchased upgrades
+- [ ] 57. Create ui/menu_system.dart for button-based menu infrastructure
+- [ ] 58. Create ui/upgrade_menu.dart with upgrade grid (keyboard navigation)
+- [ ] 59. Create three vendor types: StatVendor, AbilityVendor, SpellVendor
+- [ ] 60. Add interaction prompt when near vendor ("Press E to interact")
+- [ ] 61. Wire vendor interaction to open corresponding upgrade menu
+- [ ] 62. Implement upgrade purchase flow (check currency, apply upgrade, persist)
+- [ ] 63. Add visual indicator for owned upgrades in menu
+- [ ] 64. **TEST CHECKPOINT 7: Interact with vendor, navigate menu with keyboard, buy upgrade**
+
+### Phase 8: Magic System
+**Goal**: Add mana resource and spellcasting with purchasable spells
+- [ ] 65. Add mana stat to player (base 100, regenerates slowly)
+- [ ] 66. Add mana bar to HUD (below energy bar)
+- [ ] 67. Create spell.dart base class (cost, cooldown, cast time, effect)
+- [ ] 68. Create spell_manager.dart to track equipped spells and cooldowns
+- [ ] 69. Create three starter spells:
+  - Fireball (projectile, 20 mana, medium damage)
+  - Frost Nova (AOE around player, 35 mana, slows enemies)
+  - Soul Drain (short range, 15 mana, heals player for damage dealt)
+- [ ] 70. Create projectile.dart for spell projectiles
+- [ ] 71. Create spell_renderer.dart for spell visuals and projectiles
+- [ ] 72. Map spell casting to number keys 1-3 (or Q/E for two slots)
+- [ ] 73. Add spell unlock system via SpellVendor in hub
+- [ ] 74. **TEST CHECKPOINT 8: Cast spells, see mana drain, cooldowns work, buy new spell**
+
+### Phase 9: Complex Dungeon Rooms
+**Goal**: More varied and challenging dungeon layouts
+- [ ] 75. Add TrapRoom type with spike hazards (timed or proximity)
+- [ ] 76. Create spike.dart hazard entity (damages player on contact)
+- [ ] 77. Add ArenaRoom type (locked until wave clear, multiple enemy waves)
+- [ ] 78. Create wave_spawner.dart for timed enemy wave spawning
+- [ ] 79. Add TreasureVault room (chest with bonus loot, no enemies)
+- [ ] 80. Create chest.dart interactable entity (open with E key)
+- [ ] 81. Add PuzzleRoom type (pressure plates + gates)
+- [ ] 82. Create pressure_plate.dart and gate.dart interactables
+- [ ] 83. Update floor_generator.dart to mix in new room types
+- [ ] 84. Add mini-map or room indicator to HUD
+- [ ] 85. **TEST CHECKPOINT 9: Encounter trap room, arena room, and treasure chest**
+
+### Phase 10: Boss Encounters
+**Goal**: Epic boss battles at milestone floors
+- [ ] 86. Create boss.dart base class with phase system
+- [ ] 87. Create sentinel_boss.dart (Floor 5 boss - large geometric shape)
+  - Phase 1: Spinning attack patterns
+  - Phase 2: Summons minions
+  - Phase 3: Rage mode with faster attacks
+- [ ] 88. Create boss_room.dart with large arena layout
+- [ ] 89. Create boss_renderer.dart with health bar and phase indicator
+- [ ] 90. Add boss music and transition effects
+- [ ] 91. Update floor_generator.dart to spawn boss every 5 floors
+- [ ] 92. Add boss defeat rewards (large gold + rare essence)
+- [ ] 93. **TEST CHECKPOINT 10: Reach floor 5, fight boss with phases, get rewards**
+
+### Phase 11: Polish & Balance
+**Goal**: Final tuning and quality-of-life improvements
+- [ ] 94. Balance economy (upgrade costs, drop rates, scaling)
+- [ ] 95. Add run statistics screen on death (enemies killed, gold earned, floors cleared)
+- [ ] 96. Add permanent unlocks system (new starting abilities after milestones)
+- [ ] 97. Add sound effects for spells, purchases, and interactions
+- [ ] 98. Add settings menu (volume, controls display)
+- [ ] 99. Final playtesting and difficulty tuning
+- [ ] 100. **TEST CHECKPOINT 11: Full gameplay loop feels balanced and fun**
+
+---
+
+## Upgrade Definitions (Phase 7)
+
+### Stat Upgrades (StatVendor - costs Gold)
+| Upgrade | Tiers | Effect per Tier | Cost per Tier |
+|---------|-------|-----------------|---------------|
+| Vitality | 5 | +20 max HP | 50, 100, 200, 400, 800 |
+| Power | 5 | +10% attack damage | 75, 150, 300, 600, 1200 |
+| Agility | 3 | +5% move speed | 100, 250, 500 |
+| Endurance | 3 | +1 max dash charge | 200, 500, 1000 |
+| Recovery | 3 | +20% energy regen | 150, 350, 700 |
+
+### Ability Upgrades (AbilityVendor - costs Essence)
+| Upgrade | Effect | Cost |
+|---------|--------|------|
+| Double Jump | Unlocks double jump | 5 essence |
+| Air Dash | Can dash in mid-air | 8 essence |
+| Combo Master | 4th hit in combo, +50% damage | 10 essence |
+| Life Steal | 5% of damage heals player | 15 essence |
+| Critical Strike | 15% chance for 2x damage | 12 essence |
+
+### Spells (SpellVendor - costs both Gold + Essence)
+| Spell | Effect | Cost |
+|-------|--------|------|
+| Fireball | Projectile, 40 damage, ignites | 200g + 3e |
+| Frost Nova | AOE freeze, 25 damage | 300g + 5e |
+| Soul Drain | Channel, drain HP | 250g + 4e |
+| Lightning Bolt | Instant, chains to 2 enemies | 400g + 7e |
+| Shield Barrier | Block next hit | 350g + 6e |
+
+---
+
+## Enemy Drop Tables (Phase 5)
+
+| Enemy Type | Gold (base) | Essence Chance | Essence Amount |
+|------------|-------------|----------------|----------------|
+| Drifter (Triangle) | 5-10 | 5% | 1 |
+| Drifter (Square) | 10-15 | 10% | 1 |
+| Drifter (Pentagon) | 15-25 | 15% | 1-2 |
+| Boss | 200-300 | 100% | 10-15 |
+
+*Gold scales with floor: `base * (1 + floor * 0.1)`*
+
+---
+
+## Hub Layout (Phase 6)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      ABYSS RUNNER                       │
+│                                                         │
+│    ┌─────────┐          ┌───────┐          ┌─────────┐  │
+│    │  STAT   │          │DUNGEON│          │  SPELL  │  │
+│    │ VENDOR  │          │PORTAL │          │ VENDOR  │  │
+│    └─────────┘          └───────┘          └─────────┘  │
+│                                                         │
+│                     ┌───────────┐                       │
+│                     │  ABILITY  │                       │
+│                     │  VENDOR   │                       │
+│                     └───────────┘                       │
+│                                                         │
+│ =══════════════════════════════════════════════════════ │
+│                    [PLAYER SPAWN]                       │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Room Type Distribution (Phase 9)
+
+| Room Type | Spawn Weight | Notes |
+|-----------|--------------|-------|
+| Combat | 40% | Standard enemy room |
+| Vertical | 20% | Platforming challenge |
+| Trap | 15% | Hazard navigation |
+| Arena | 10% | Wave survival |
+| Treasure | 10% | Bonus loot |
+| Puzzle | 5% | Pressure plate puzzle |
+
+---
 
 ## Files Created (Phase 3)
 - lib/entities/enemy.dart - Base enemy class with AI states
@@ -70,11 +250,23 @@
 - lib/rendering/portal_renderer.dart - Portal visual rendering
 - lib/audio/audio_manager.dart - Background music playback
 
+## Files Created (Phase 5)
+- lib/economy/currency_manager.dart - Gold and essence tracking with session management
+- lib/economy/loot_table.dart - Enemy drop rates and floor scaling
+- lib/economy/save_system.dart - SharedPreferences persistence for currency
+
+## Files Created (Phase 6)
+- lib/game/game_state.dart - GameState enum (hub, dungeon, menu)
+- lib/hub/vendor.dart - Vendor class and VendorType enum
+- lib/hub/hub_room.dart - Static hub layout generator
+- lib/rendering/hub_renderer.dart - Hub vendor/decoration rendering
+
 ## Controls
 - **WASD / Arrow Keys**: Move
 - **Space**: Jump
 - **K / Shift**: Dash (8 directions, uses movement keys for direction)
 - **J / Z**: Attack (3-hit combo, directional)
+- **E**: Interact (enter dungeon portal, interact with vendors)
 
 ## Features Implemented (Phase 3)
 - Drifter enemies that float and chase player
@@ -102,12 +294,38 @@
 - 30% faster player gravity for snappier feel
 - Looping background music (Chromatic Skyline)
 
+## Features Implemented (Phase 5)
+- Currency system with gold and essence
+- Gold drops from all drifter enemies (scales with floor)
+- Essence has chance to drop from stronger drifters (pentagon 15%, square 10%, triangle 5%)
+- Loot table with configurable drop rates per enemy shape type
+- Floor completion gold bonus (scales with floor number)
+- HUD displays gold (coin icon) and essence (star icon) in top right
+- Persistent storage using SharedPreferences (auto-saves on currency change)
+- Floating damage numbers show "+Xg" for gold and "+Xe" for essence
+- Health and energy drops still occur with smaller chances
+
 ## Generated Dungeon Layout
 - 3-7 connected rooms depending on floor number
 - Start room: safe area with platforms
 - Combat rooms: platforms + drifter enemies
 - Vertical rooms: tall with alternating platforms and wall-jump walls
 - Exit room: elevated portal platform with guardian enemies
+
+## Features Implemented (Phase 6)
+- Hub/base room as the game's starting area (800x600 safe zone)
+- Three vendor NPCs rendered as colored hexagons (stat=gold, ability=purple, spell=blue)
+- Vendors show name labels and "Press E" prompt when player is nearby
+- Dungeon portal in hub center (always unlocked, press E to enter)
+- Game state system (hub vs dungeon) controlling flow and rendering
+- "Entering the Abyss..." transition when starting a dungeon run
+- Death detection with "YOU DIED" overlay and gold loss display
+- Return-to-hub on death (lose 50% session gold, keep all essence)
+- "Returning to Hub..." transition after death
+- Hub-specific background (dark purple-blue), cyan platform glow, "ABYSS RUNNER" title
+- Context-sensitive HUD (shows "HUB" vs "Floor: N", hides enemy count in hub)
+- Context-sensitive controls hint (shows E: Interact in hub)
+- E key added to input system for interactions
 
 ## Rabbit Holes / Issues to Resolve
 (None yet)

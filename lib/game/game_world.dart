@@ -5,12 +5,24 @@ import '../dungeon/exit_portal.dart';
 import '../dungeon/floor_generator.dart';
 import '../dungeon/platform.dart';
 import '../dungeon/room.dart';
+import '../economy/currency_manager.dart';
+import '../economy/loot_table.dart';
+import '../economy/save_system.dart';
 import '../entities/enemy.dart';
 import '../entities/pickup.dart';
 import '../entities/player.dart';
+import '../hub/hub_room.dart';
+import '../hub/vendor.dart';
 import '../utils/math_utils.dart';
 import 'camera.dart';
+import 'game_state.dart';
 import 'input_handler.dart';
+
+enum _TransitionType {
+  nextFloor,
+  enterDungeon,
+  returnToHub,
+}
 
 class GameWorld {
   int currentFloor = 1;
@@ -34,6 +46,10 @@ class GameWorld {
   // Combat
   final CombatSystem combat = CombatSystem();
 
+  // Economy
+  final CurrencyManager currencyManager = CurrencyManager();
+  final SaveSystem saveSystem = SaveSystem();
+
   // Dungeon
   final FloorGenerator _floorGenerator = FloorGenerator();
   DungeonFloor? _currentDungeon;
@@ -48,12 +64,96 @@ class GameWorld {
   double fpsAccumulator = 0;
   double currentFps = 0;
 
+  // Game state
+  GameState gameState = GameState.hub;
+
+  // Hub
+  HubRoom? _hubRoom;
+  List<Vendor> vendors = [];
+
   // Floor transition
   bool isTransitioning = false;
   double transitionTimer = 0;
+  double transitionDuration = 1.0;
+  _TransitionType _pendingTransition = _TransitionType.nextFloor;
+
+  // Death handling
+  bool _deathHandled = false;
+  double _deathTimer = 0;
+  static const double _deathDelay = 1.5;
 
   GameWorld() {
-    _generateFloor(1);
+    // Wire up currency manager to combat system
+    combat.currencyManager = currencyManager;
+
+    // Auto-save when currency changes
+    currencyManager.onCurrencyChanged = _saveCurrency;
+
+    _loadHub();
+  }
+
+  /// Initialize async components (call from game screen)
+  Future<void> initializeAsync() async {
+    await saveSystem.initialize();
+    saveSystem.loadCurrency(currencyManager);
+  }
+
+  void _saveCurrency() {
+    if (saveSystem.isInitialized) {
+      saveSystem.saveCurrency(currencyManager);
+    }
+  }
+
+  void _loadHub() {
+    gameState = GameState.hub;
+    currentFloor = 0;
+    _deathHandled = false;
+
+    _hubRoom = HubRoom.generate();
+
+    platforms = List.from(_hubRoom!.platforms);
+    enemies = [];
+    pickups = [];
+    vendors = List.from(_hubRoom!.vendors);
+
+    worldWidth = HubRoom.hubWidth;
+    worldHeight = HubRoom.hubHeight;
+
+    player = Player(position: _hubRoom!.spawnPoint.copy());
+
+    exitPortal = _hubRoom!.dungeonPortal;
+
+    combat.clear();
+    camera.snapTo(player.position);
+  }
+
+  void _enterDungeon() {
+    currencyManager.onRunStart();
+    isTransitioning = true;
+    transitionDuration = 0.6;
+    transitionTimer = 0.6;
+    _pendingTransition = _TransitionType.enterDungeon;
+  }
+
+  void _returnToHub() {
+    currencyManager.onPlayerDeath();
+    saveSystem.saveHighestFloor(currentFloor);
+    isTransitioning = true;
+    transitionDuration = 1.5;
+    transitionTimer = 1.5;
+    _pendingTransition = _TransitionType.returnToHub;
+  }
+
+  /// Text to display during transitions (used by game painter)
+  String get transitionText {
+    switch (_pendingTransition) {
+      case _TransitionType.enterDungeon:
+        return 'Entering the Abyss...';
+      case _TransitionType.returnToHub:
+        return 'Returning to Hub...';
+      case _TransitionType.nextFloor:
+        return 'Floor ${currentFloor + 1}';
+    }
   }
 
   void _generateFloor(int floor) {
@@ -67,6 +167,11 @@ class GameWorld {
     enemies = List.from(_currentDungeon!.allEnemies);
     pickups = [];
 
+    // Set floor number on all enemies for loot scaling
+    for (final enemy in enemies) {
+      enemy.currentFloor = floor;
+    }
+
     worldWidth = _currentDungeon!.totalWidth;
     worldHeight = _currentDungeon!.totalHeight;
 
@@ -79,18 +184,46 @@ class GameWorld {
   }
 
   void _goToNextFloor() {
+    // Award floor completion bonus
+    final bonus = LootTable.getFloorCompletionBonus(currentFloor);
+    currencyManager.addGold(bonus);
+
     isTransitioning = true;
-    transitionTimer = 1.0; // 1 second transition
+    transitionDuration = 1.0;
+    transitionTimer = 1.0;
+    _pendingTransition = _TransitionType.nextFloor;
   }
 
   void _completeTransition() {
     isTransitioning = false;
-    _generateFloor(currentFloor + 1);
-    camera.snapTo(player.position);
+    switch (_pendingTransition) {
+      case _TransitionType.nextFloor:
+        _generateFloor(currentFloor + 1);
+        camera.snapTo(player.position);
+        break;
+      case _TransitionType.enterDungeon:
+        gameState = GameState.dungeon;
+        _generateFloor(1);
+        camera.snapTo(player.position);
+        break;
+      case _TransitionType.returnToHub:
+        _loadHub();
+        break;
+    }
   }
 
   void handleInput(InputState input, double dt) {
+    if (player.isDead) return;
+
     player.handleInput(input, dt);
+
+    // Hub portal interaction (check held state too so holding E works reliably)
+    if (gameState == GameState.hub && !isTransitioning &&
+        (input.interactPressed || input.interact)) {
+      if (exitPortal != null && exitPortal!.isPlayerInRange(player.position)) {
+        _enterDungeon();
+      }
+    }
   }
 
   void update(double dt) {
@@ -114,13 +247,35 @@ class GameWorld {
       return; // Don't update anything else during transition
     }
 
+    // Handle player death (dungeon only)
+    if (gameState == GameState.dungeon && player.isDead && !_deathHandled) {
+      _deathHandled = true;
+      _deathTimer = _deathDelay;
+    }
+    if (_deathHandled) {
+      _deathTimer -= dt;
+      combat.update(dt); // Keep particles/numbers animating
+      if (_deathTimer <= 0) {
+        _deathHandled = false;
+        _returnToHub();
+      }
+      return;
+    }
+
     // Update player
     player.update(dt);
+
+    // Update vendors (hub only)
+    if (gameState == GameState.hub) {
+      for (final vendor in vendors) {
+        vendor.update(dt);
+      }
+    }
 
     // Update enemies
     for (final enemy in enemies) {
       enemy.targetPosition = player.position;
-      enemy.platforms = platforms; // Give enemies platform awareness for pathfinding
+      enemy.platforms = platforms;
       enemy.update(dt);
     }
 
@@ -147,20 +302,26 @@ class GameWorld {
     if (exitPortal != null) {
       exitPortal!.update(dt);
 
-      // Unlock portal when all enemies are defeated
-      if (!exitPortal!.isUnlocked && enemies.isEmpty) {
-        exitPortal!.isUnlocked = true;
-      }
+      if (gameState == GameState.dungeon) {
+        // Dungeon: unlock portal when all enemies are defeated
+        if (!exitPortal!.isUnlocked && enemies.isEmpty) {
+          exitPortal!.isUnlocked = true;
+        }
 
-      // Check if player enters unlocked portal
-      if (exitPortal!.isUnlocked && exitPortal!.isPlayerInRange(player.position)) {
-        _goToNextFloor();
+        // Check if player enters unlocked portal
+        if (exitPortal!.isUnlocked &&
+            exitPortal!.isPlayerInRange(player.position)) {
+          _goToNextFloor();
+        }
       }
+      // Hub portal interaction is handled in handleInput()
     }
 
     // Handle collisions
     _handleCollisions();
-    _handleEnemyCollisions();
+    if (gameState == GameState.dungeon) {
+      _handleEnemyCollisions();
+    }
 
     // Update camera
     camera.follow(

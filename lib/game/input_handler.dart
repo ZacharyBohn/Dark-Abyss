@@ -11,11 +11,13 @@ class InputState {
   bool dash = false;
   bool attack = false;
   bool special = false;
+  bool interact = false;
 
   // For detecting just-pressed (edge detection)
   bool jumpPressed = false;
   bool dashPressed = false;
   bool attackPressed = false;
+  bool interactPressed = false;
 
   Vector2 get moveDirection {
     double x = 0;
@@ -39,6 +41,7 @@ class InputState {
     jumpPressed = false;
     dashPressed = false;
     attackPressed = false;
+    interactPressed = false;
   }
 }
 
@@ -100,6 +103,15 @@ class InputHandler {
       }
       state.attack = isDown || (!isUp && state.attack);
       if (isUp) state.attack = false;
+    }
+
+    // Interact (E key)
+    if (key == LogicalKeyboardKey.keyE) {
+      if (isDown && !state.interact) {
+        state.interactPressed = true;
+      }
+      state.interact = isDown || (!isUp && state.interact);
+      if (isUp) state.interact = false;
     }
 
     // Special (L or X) - hold for charge
