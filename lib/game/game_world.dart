@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import '../audio/audio_manager.dart';
 import '../combat/combat_system.dart';
 import '../dungeon/exit_portal.dart';
 import '../dungeon/floor_generator.dart';
@@ -205,9 +206,11 @@ class GameWorld {
         gameState = GameState.dungeon;
         _generateFloor(1);
         camera.snapTo(player.position);
+        AudioManager().playDungeonMusic();
         break;
       case _TransitionType.returnToHub:
         _loadHub();
+        AudioManager().playHubMusic();
         break;
     }
   }

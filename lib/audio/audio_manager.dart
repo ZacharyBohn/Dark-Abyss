@@ -5,10 +5,14 @@ class AudioManager {
   factory AudioManager() => _instance;
   AudioManager._internal();
 
+  static const String _hubTrack = 'music/Town Center Echoes.mp3';
+  static const String _dungeonTrack = 'music/Chromatic Skyline.mp3';
+
   final AudioPlayer _musicPlayer = AudioPlayer();
   bool _isInitialized = false;
   bool _isMuted = false;
   double _savedVolume = 0.5;
+  String? _currentTrack;
 
   bool get isMuted => _isMuted;
 
@@ -21,11 +25,24 @@ class AudioManager {
   }
 
   Future<void> playMusic() async {
+    await playHubMusic();
+  }
+
+  Future<void> playHubMusic() async {
+    await _playTrack(_hubTrack);
+  }
+
+  Future<void> playDungeonMusic() async {
+    await _playTrack(_dungeonTrack);
+  }
+
+  Future<void> _playTrack(String track) async {
+    if (_currentTrack == track) return;
     if (!_isInitialized) await init();
 
-    await _musicPlayer.play(
-      AssetSource('music/Chromatic Skyline.mp3'),
-    );
+    _currentTrack = track;
+    await _musicPlayer.stop();
+    await _musicPlayer.play(AssetSource(track));
   }
 
   Future<void> stopMusic() async {

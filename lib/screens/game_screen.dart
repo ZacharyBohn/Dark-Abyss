@@ -18,6 +18,7 @@ class _GameScreenState extends State<GameScreen>
   final FocusNode _focusNode = FocusNode();
   final InputHandler _inputHandler = InputHandler();
   final AudioManager _audioManager = AudioManager();
+  bool _musicStarted = false;
 
   @override
   void initState() {
@@ -25,10 +26,16 @@ class _GameScreenState extends State<GameScreen>
     _engine = GameEngine(tickerProvider: this);
     _engine.onUpdate = _onGameUpdate;
     _engine.start();
-    _audioManager.playMusic();
 
     // Initialize async components (save system)
     _engine.world.initializeAsync();
+  }
+
+  void _ensureMusicStarted() {
+    if (!_musicStarted) {
+      _musicStarted = true;
+      _audioManager.playMusic();
+    }
   }
 
   void _onGameUpdate() {
@@ -52,6 +59,7 @@ class _GameScreenState extends State<GameScreen>
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    _ensureMusicStarted();
     _inputHandler.handleKeyEvent(event);
     // Return handled to prevent key events from propagating to macOS
     return KeyEventResult.handled;
@@ -69,6 +77,7 @@ class _GameScreenState extends State<GameScreen>
           behavior: HitTestBehavior.opaque,
           onTapDown: (details) {
             _focusNode.requestFocus();
+            _ensureMusicStarted();
           },
           child: LayoutBuilder(
             builder: (context, constraints) {
