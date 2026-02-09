@@ -6,7 +6,7 @@ DEPLOY_BRANCH="gh-pages"
 TEMP_DIR="$(mktemp -d)"
 
 echo "Building Flutter web project..."
-flutter build web --base-href "/Archmages/"
+flutter build web --base-href "/Dark-Abyss/"
 
 # Get the remote URL from the main repo
 REMOTE_URL=$(git config --get remote.origin.url)
