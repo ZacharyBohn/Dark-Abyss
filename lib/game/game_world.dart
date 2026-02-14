@@ -15,7 +15,13 @@ import '../entities/pickup.dart';
 import '../entities/player.dart';
 import '../hub/hub_room.dart';
 import '../hub/vendor.dart';
+import '../spells/fireball_spell.dart';
+import '../spells/frost_nova_spell.dart';
+import '../spells/soul_drain_spell.dart';
+import '../spells/spell.dart';
+import '../spells/spell_manager.dart';
 import '../ui/menu_system.dart';
+import '../upgrades/upgrade.dart';
 import '../upgrades/upgrade_manager.dart';
 import '../utils/math_utils.dart';
 import 'camera.dart';
@@ -95,6 +101,9 @@ class GameWorld {
   final UpgradeManager upgradeManager = UpgradeManager();
   MenuState? activeMenu;
 
+  // Spell system
+  final SpellManager spellManager = SpellManager();
+
   GameWorld() {
     // Wire up currency manager to combat system
     combat.currencyManager = currencyManager;
@@ -115,6 +124,11 @@ class GameWorld {
     saveSystem.loadCurrency(currencyManager);
     dungeonCheckpointFloor = saveSystem.getCheckpointFloor();
     upgradeManager.loadFromSave(saveSystem.loadUpgrades());
+
+    // Load and equip unlocked spells
+    final unlockedSpells = saveSystem.loadUnlockedSpells();
+    spellManager.deserializeUnlockedSpells(unlockedSpells);
+    _reequipSpells();
   }
 
   void _saveCurrency() {
@@ -206,6 +220,72 @@ class GameWorld {
         return 'Returning to Hub...';
       case _TransitionType.nextFloor:
         return 'Floor ${currentFloor + 1}';
+    }
+  }
+
+  /// Unlock and auto-equip a spell when purchased
+  void _unlockAndEquipSpell(String spellId) {
+    Spell? spell;
+    SpellType? spellType;
+
+    // Create spell instance based on ID
+    switch (spellId) {
+      case 'fireball':
+        spell = FireballSpell();
+        spellType = SpellType.fireball;
+        break;
+      case 'frost_nova':
+        spell = FrostNovaSpell();
+        spellType = SpellType.frostNova;
+        break;
+      case 'soul_drain':
+        spell = SoulDrainSpell();
+        spellType = SpellType.soulDrain;
+        break;
+    }
+
+    if (spell != null && spellType != null) {
+      // Unlock the spell
+      spellManager.unlockSpell(spellType);
+
+      // Auto-equip to first empty slot
+      for (int i = 0; i < 3; i++) {
+        if (spellManager.equippedSpells[i] == null) {
+          spellManager.equipSpell(spell, i);
+          break;
+        }
+      }
+
+      // Save to persistence
+      saveSystem.saveUnlockedSpells(spellManager.serializeUnlockedSpells());
+    }
+  }
+
+  /// Re-equip all unlocked spells (called on load)
+  void _reequipSpells() {
+    int slot = 0;
+
+    // Equip all unlocked spells in order
+    for (final spellType in spellManager.unlockedSpells) {
+      if (slot >= 3) break;
+
+      final Spell spell;
+      switch (spellType) {
+        case SpellType.fireball:
+          spell = FireballSpell();
+          break;
+        case SpellType.frostNova:
+          spell = FrostNovaSpell();
+          break;
+        case SpellType.soulDrain:
+          spell = SoulDrainSpell();
+          break;
+        default:
+          continue;
+      }
+
+      spellManager.equipSpell(spell, slot);
+      slot++;
     }
   }
 
@@ -325,8 +405,14 @@ class GameWorld {
       else if (activeMenu!.requestPurchase) {
         final upgrade = activeMenu!.selectedUpgrade;
         if (upgradeManager.purchase(upgrade, currencyManager)) {
-          // Purchase succeeded, apply upgrades to player
-          upgradeManager.applyUpgrades(player);
+          // Purchase succeeded
+          if (upgrade.category == UpgradeCategory.spell) {
+            // Spell purchase - unlock and auto-equip
+            _unlockAndEquipSpell(upgrade.id);
+          } else {
+            // Stat/ability purchase - apply upgrades to player
+            upgradeManager.applyUpgrades(player);
+          }
         }
         activeMenu!.requestPurchase = false;
       }
@@ -335,6 +421,19 @@ class GameWorld {
     }
 
     player.handleInput(input, dt);
+
+    // Spell casting (dungeon only)
+    if (gameState == GameState.dungeon) {
+      if (input.spell1Pressed) {
+        spellManager.castSpell(0, player, this);
+      }
+      if (input.spell2Pressed) {
+        spellManager.castSpell(1, player, this);
+      }
+      if (input.spell3Pressed) {
+        spellManager.castSpell(2, player, this);
+      }
+    }
 
     // Hub interactions
     if (gameState == GameState.hub &&
@@ -401,6 +500,61 @@ class GameWorld {
 
     // Update player
     player.update(dt);
+
+    // Update spell system
+    spellManager.update(dt, player, this);
+
+    // Process projectile collisions with enemies
+    for (final projectile in spellManager.projectiles) {
+      if (projectile.isDead) continue;
+
+      for (final enemy in enemies) {
+        if (enemy.isDead) continue;
+
+        if (projectile.checkCollision(enemy)) {
+          // Deal damage
+          final knockbackDir = (enemy.position - projectile.position).normalized();
+          enemy.takeDamage(projectile.damage, knockbackDirection: knockbackDir);
+
+          // Mark hit
+          projectile.markHit(enemy);
+
+          // Create damage number
+          combat.damageNumbers.spawn(
+            enemy.position.copy(),
+            projectile.damage,
+            isCritical: false,
+          );
+
+          // Create impact particles
+          final impactParticles = projectile.createImpactParticles();
+          for (final particle in impactParticles) {
+            combat.particles.particles.add(particle);
+          }
+
+          // Check if enemy died
+          if (enemy.isDead) {
+            combat.particles.spawnDeathBurst(
+              enemy.position,
+              const Color(0xFF8800FF),
+            );
+            // Spawn loot using same pattern as melee combat
+            final drops = enemy.getDrops();
+            for (final drop in drops) {
+              combat.pendingPickups.add(Pickup(
+                position: enemy.position.copy(),
+                type: drop.type,
+                customValue: drop.value,
+              ));
+            }
+          }
+
+          // Mark projectile as dead
+          projectile.isDead = true;
+          break;
+        }
+      }
+    }
 
     // Update vendors (hub only)
     if (gameState == GameState.hub) {
@@ -536,7 +690,8 @@ class GameWorld {
       }
 
       // Head collision (stop upward movement)
-      if (player.velocity.y < 0) {
+      // Skip one-way platforms to allow jumping/dashing through from below
+      if (player.velocity.y < 0 && !platform.isOneWay) {
         final headRect = Rect.fromLTWH(
           player.position.x - player.width / 2 + 4,
           player.position.y - player.height / 2 - 2,

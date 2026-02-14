@@ -201,6 +201,69 @@ class CombatSystem {
     }
   }
 
+  /// Helper method for spells to deal damage to enemies
+  void dealDamage({
+    required dynamic attacker,
+    required Enemy target,
+    required double damage,
+    required bool isCrit,
+  }) {
+    if (target.isDead) return;
+
+    final knockbackDir = (target.position - (attacker as dynamic).position).normalized();
+    target.takeDamage(damage, knockbackDirection: knockbackDir);
+
+    damageNumbers.spawn(
+      target.position,
+      damage,
+      isCritical: isCrit,
+    );
+
+    particles.spawnHitSparks(
+      target.position,
+      isCrit ? const Color(0xFFFF4400) : const Color(0xFFFFAA00),
+      count: isCrit ? 12 : 8,
+    );
+
+    if (target.isDead) {
+      _handleEnemyDeath(target);
+    }
+  }
+
+  /// Helper method for spells to add damage numbers
+  void addDamageNumber({
+    required Vector2 position,
+    required double value,
+    bool isCritical = false,
+    bool isHealing = false,
+  }) {
+    damageNumbers.spawn(
+      position,
+      value,
+      isCritical: isCritical,
+      isHealing: isHealing,
+    );
+  }
+
+  /// Helper method for spells to add particles
+  void addParticle({
+    required Vector2 position,
+    required Vector2 velocity,
+    required double lifetime,
+    required Color color,
+    double size = 4.0,
+    ParticleType type = ParticleType.spark,
+  }) {
+    particles.particles.add(Particle(
+      position: position.copy(),
+      velocity: velocity,
+      lifetime: lifetime,
+      color: color,
+      size: size,
+      type: type,
+    ));
+  }
+
   void clear() {
     damageNumbers.clear();
     particles.clear();

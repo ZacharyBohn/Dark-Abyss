@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
@@ -163,19 +162,33 @@ class PlayerRenderer {
     if (!isAfterimage) {
       final indicatorSize = 12.0;
       final indicatorOffset = 8.0;
-      final indicatorX = facingRight ? x + w / 2 + indicatorOffset : x - w / 2 - indicatorOffset;
+      final indicatorX = facingRight
+          ? x + w / 2 + indicatorOffset
+          : x - w / 2 - indicatorOffset;
       final indicatorPath = Path();
 
       if (facingRight) {
         indicatorPath.moveTo(indicatorX + indicatorSize / 2, y);
-        indicatorPath.lineTo(indicatorX - indicatorSize / 2, y - indicatorSize / 2);
+        indicatorPath.lineTo(
+          indicatorX - indicatorSize / 2,
+          y - indicatorSize / 2,
+        );
         indicatorPath.lineTo(indicatorX - indicatorSize / 4, y);
-        indicatorPath.lineTo(indicatorX - indicatorSize / 2, y + indicatorSize / 2);
+        indicatorPath.lineTo(
+          indicatorX - indicatorSize / 2,
+          y + indicatorSize / 2,
+        );
       } else {
         indicatorPath.moveTo(indicatorX - indicatorSize / 2, y);
-        indicatorPath.lineTo(indicatorX + indicatorSize / 2, y - indicatorSize / 2);
+        indicatorPath.lineTo(
+          indicatorX + indicatorSize / 2,
+          y - indicatorSize / 2,
+        );
         indicatorPath.lineTo(indicatorX + indicatorSize / 4, y);
-        indicatorPath.lineTo(indicatorX + indicatorSize / 2, y + indicatorSize / 2);
+        indicatorPath.lineTo(
+          indicatorX + indicatorSize / 2,
+          y + indicatorSize / 2,
+        );
       }
       indicatorPath.close();
 
@@ -209,31 +222,5 @@ class PlayerRenderer {
         );
       }
     }
-  }
-
-  void _drawHitbox(Canvas canvas, Player player, Vector2 cameraOffset) {
-    final hitboxPaint = Paint()
-      ..color = Colors.red.withValues(alpha: 0.3)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-
-    final hitbox = player.hitbox.translate(-cameraOffset.x, -cameraOffset.y);
-    canvas.drawRect(hitbox, hitboxPaint);
-
-    // Feet sensor
-    final feetPaint = Paint()
-      ..color = Colors.green.withValues(alpha: 0.5)
-      ..style = PaintingStyle.fill;
-    final feetRect = player.feetRect.translate(-cameraOffset.x, -cameraOffset.y);
-    canvas.drawRect(feetRect, feetPaint);
-
-    // Wall sensors
-    final wallPaint = Paint()
-      ..color = Colors.blue.withValues(alpha: 0.5)
-      ..style = PaintingStyle.fill;
-    final leftRect = player.leftRect.translate(-cameraOffset.x, -cameraOffset.y);
-    final rightRect = player.rightRect.translate(-cameraOffset.x, -cameraOffset.y);
-    canvas.drawRect(leftRect, wallPaint);
-    canvas.drawRect(rightRect, wallPaint);
   }
 }

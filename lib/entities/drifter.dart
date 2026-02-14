@@ -26,10 +26,9 @@ class Drifter extends Enemy {
   static const double lungeSpeed = 600.0; // Speed during lunge
 
   Drifter({
-    required Vector2 position,
+    required super.position,
   }) : shapeType = Random().nextInt(3),
        super(
-         position: position,
          width: 30,
          height: 30,
          maxHealth: 20,
@@ -90,7 +89,7 @@ class Drifter extends Enemy {
 
   void _patrolBehavior(double dt) {
     // Drift in patrol direction with wobble
-    velocity.x = patrolDirection * moveSpeed * 0.5;
+    velocity.x = patrolDirection * moveSpeed * 0.5 * slowMultiplier;
     velocity.y = sin(wobblePhase) * wobbleAmount;
 
     patrolTimer += dt;
@@ -128,9 +127,9 @@ class Drifter extends Enemy {
       }
     }
 
-    // Apply movement
-    velocity.x = moveDirection.x * moveSpeed;
-    velocity.y = moveDirection.y * moveSpeed * 0.5 + sin(wobblePhase) * wobbleAmount;
+    // Apply movement (with slow effect if active)
+    velocity.x = moveDirection.x * moveSpeed * slowMultiplier;
+    velocity.y = moveDirection.y * moveSpeed * 0.5 * slowMultiplier + sin(wobblePhase) * wobbleAmount;
 
     // Check if can attack - start wind-up
     if (canAttackPlayer(targetPosition!) && attackTimer <= 0) {

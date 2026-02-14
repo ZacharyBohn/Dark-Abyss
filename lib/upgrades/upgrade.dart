@@ -160,11 +160,11 @@ class Upgrades {
     tierCosts: [UpgradeCost(essence: 12)],
   );
 
-  // Spell upgrades (coming in Phase 8)
+  // Spell upgrades (Phase 8)
   static const fireball = Upgrade(
     id: 'fireball',
     name: 'Fireball',
-    description: 'Coming soon...',
+    description: 'Launch a burning projectile (40 damage, 20 mana)',
     category: UpgradeCategory.spell,
     maxTier: 1,
     tierCosts: [UpgradeCost(gold: 200, essence: 3)],
@@ -173,7 +173,7 @@ class Upgrades {
   static const frostNova = Upgrade(
     id: 'frost_nova',
     name: 'Frost Nova',
-    description: 'Coming soon...',
+    description: 'AOE freeze, slows enemies (25 damage, 35 mana)',
     category: UpgradeCategory.spell,
     maxTier: 1,
     tierCosts: [UpgradeCost(gold: 300, essence: 5)],
@@ -182,7 +182,7 @@ class Upgrades {
   static const soulDrain = Upgrade(
     id: 'soul_drain',
     name: 'Soul Drain',
-    description: 'Coming soon...',
+    description: 'Drain HP from nearby enemy (heals, 15 mana)',
     category: UpgradeCategory.spell,
     maxTier: 1,
     tierCosts: [UpgradeCost(gold: 250, essence: 4)],

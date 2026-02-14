@@ -1,7 +1,7 @@
 # Abyss Runner - Work Tracker
 
-## Current Phase: Phase 7 - Upgrade System (COMPLETE)
-## Current Status: READY TO BEGIN PHASE 8
+## Current Phase: Phase 8 - Magic System (COMPLETE)
+## Current Status: READY TO BEGIN PHASE 9
 
 ## Upcoming Phases Overview
 | Phase | Focus | Key Deliverable |
@@ -103,21 +103,21 @@
 - [x] 67. Persist purchased upgrades and dungeon checkpoint to save file
 - [x] 68. **TEST CHECKPOINT 7: Interact with vendor, navigate menu with keyboard, buy upgrade**
 
-### Phase 8: Magic System
+### Phase 8: Magic System (COMPLETE)
 **Goal**: Add mana resource and spellcasting with purchasable spells
-- [ ] 65. Add mana stat to player (base 100, regenerates slowly)
-- [ ] 66. Add mana bar to HUD (below energy bar)
-- [ ] 67. Create spell.dart base class (cost, cooldown, cast time, effect)
-- [ ] 68. Create spell_manager.dart to track equipped spells and cooldowns
-- [ ] 69. Create three starter spells:
+- [x] 65. Add mana stat to player (base 100, regenerates slowly)
+- [x] 66. Add mana bar to HUD (below energy bar)
+- [x] 67. Create spell.dart base class (cost, cooldown, cast time, effect)
+- [x] 68. Create spell_manager.dart to track equipped spells and cooldowns
+- [x] 69. Create three starter spells:
   - Fireball (projectile, 20 mana, medium damage)
   - Frost Nova (AOE around player, 35 mana, slows enemies)
   - Soul Drain (short range, 15 mana, heals player for damage dealt)
-- [ ] 70. Create projectile.dart for spell projectiles
-- [ ] 71. Create spell_renderer.dart for spell visuals and projectiles
-- [ ] 72. Map spell casting to number keys 1-3 (or Q/E for two slots)
-- [ ] 73. Add spell unlock system via SpellVendor in hub
-- [ ] 74. **TEST CHECKPOINT 8: Cast spells, see mana drain, cooldowns work, buy new spell**
+- [x] 70. Create projectile.dart for spell projectiles
+- [x] 71. Create spell_renderer.dart for spell visuals and projectiles
+- [x] 72. Map spell casting to number keys 1-3
+- [x] 73. Add spell unlock system via SpellVendor in hub
+- [x] 74. **TEST CHECKPOINT 8: Cast spells, see mana drain, cooldowns work, buy new spell**
 
 ### Phase 9: Complex Dungeon Rooms
 **Goal**: More varied and challenging dungeon layouts
@@ -350,6 +350,32 @@
 - **Persistence**: Purchased upgrades and checkpoint floor saved to SharedPreferences, load on startup
 - **HUD updates**: Floor display shows "(checkpoint!)" on checkpoint floors, hub portal shows resume floor
 - **Portal visuals**: Hub return portal rendered in cyan color, distinct from green exit portal
+
+## Features Implemented (Phase 8)
+- **Mana system**: Player has 100 max mana, regenerates 3 mana per second
+- **Mana HUD**: Purple mana bar displayed below energy bar in HUD
+- **Spell infrastructure**: Spell base class with cost, cooldown, cast time, and effect execution
+- **Projectile system**: Spell projectiles with collision detection, lifetime, and visual trails
+- **Spell manager**: Tracks equipped spells (3 slots), unlocked spells, and active projectiles
+- **Three spells implemented**:
+  - Fireball: Fast projectile, 40 damage, 20 mana, 1.5s cooldown
+  - Frost Nova: AOE freeze, 25 damage, slows enemies 50% for 2s, 35 mana, 4s cooldown
+  - Soul Drain: Drains nearby enemy HP, heals player 75% of damage, 15 mana, 2s cooldown
+- **Spell rendering**: Projectile visuals with glow effects, spell HUD with cooldown indicators
+- **Spell casting**: Number keys 1-3 cast equipped spells (dungeon only)
+- **Spell vendor**: Purchase spells with gold + essence, auto-equip to first empty slot
+- **Enemy slow effect**: Frost Nova applies slow debuff, reduces movement speed
+- **Spell persistence**: Unlocked spells saved to SharedPreferences, auto-equipped on load
+- **Spell-enemy interactions**: Projectiles deal damage, spawn loot on kill, show damage numbers
+
+## Files Created (Phase 8)
+- lib/spells/spell.dart - Base spell class with cost, cooldown, casting
+- lib/spells/projectile.dart - Spell projectile entity with collision
+- lib/spells/spell_manager.dart - Manages equipped spells, unlocks, projectiles
+- lib/spells/fireball_spell.dart - Fireball spell implementation
+- lib/spells/frost_nova_spell.dart - Frost Nova AOE spell
+- lib/spells/soul_drain_spell.dart - Soul Drain life-steal spell
+- lib/rendering/spell_renderer.dart - Renders projectiles and spell HUD
 
 ## Rabbit Holes / Issues to Resolve
 (None yet)

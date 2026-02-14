@@ -12,6 +12,7 @@ import 'enemy_renderer.dart';
 import 'hub_renderer.dart';
 import 'player_renderer.dart';
 import 'portal_renderer.dart';
+import 'spell_renderer.dart';
 
 class GamePainter extends CustomPainter {
   final GameWorld world;
@@ -22,6 +23,7 @@ class GamePainter extends CustomPainter {
   final HubRenderer _hubRenderer = HubRenderer();
   final UpgradeMenuRenderer _menuRenderer = UpgradeMenuRenderer();
   final StartScreenRenderer _startScreenRenderer = StartScreenRenderer();
+  final SpellRenderer _spellRenderer = SpellRenderer();
 
   GamePainter({required this.world});
 
@@ -72,6 +74,9 @@ class GamePainter extends CustomPainter {
 
     // Draw particles (on top of entities)
     _effectsRenderer.renderParticles(canvas, world.combat.particles, cameraOffset);
+
+    // Draw spell projectiles
+    _spellRenderer.renderProjectiles(canvas, world.spellManager.projectiles, cameraOffset);
 
     // Draw damage numbers (on top of everything in game world)
     _effectsRenderer.renderDamageNumbers(canvas, world.combat.damageNumbers, cameraOffset);
@@ -410,6 +415,18 @@ class GamePainter extends CustomPainter {
       label: 'EN',
     );
 
+    // Player Mana bar
+    _drawBar(
+      canvas: canvas,
+      x: 10,
+      y: 65,
+      width: 150,
+      height: 8,
+      fillRatio: player.currentMana / player.maxMana,
+      fillColor: const Color(0xFFAA00FF),
+      label: 'MP',
+    );
+
     // Enemy count (dungeon only)
     if (world.gameState == GameState.dungeon) {
       final enemyText = TextPainter(
@@ -424,16 +441,21 @@ class GamePainter extends CustomPainter {
         textDirection: TextDirection.ltr,
       );
       enemyText.layout();
-      enemyText.paint(canvas, const Offset(10, 70));
+      enemyText.paint(canvas, const Offset(10, 83));
     }
 
     // Currency display (top right, below FPS)
     _drawCurrencyHUD(canvas, size);
 
+    // Spell HUD (dungeon only)
+    if (world.gameState == GameState.dungeon) {
+      _spellRenderer.renderSpellHUD(canvas, size, world.spellManager.equippedSpells);
+    }
+
     // Controls hint
     final controlsHint = world.gameState == GameState.hub
         ? 'WASD: Move | Space: Jump | E: Interact'
-        : 'WASD: Move | Space: Jump | K/Shift: Dash | J/Z: Attack';
+        : 'WASD: Move | Space: Jump | K/Shift: Dash | J/Z: Attack | 1-3: Spells';
     final controlsText = TextPainter(
       text: TextSpan(
         text: controlsHint,

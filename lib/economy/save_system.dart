@@ -9,6 +9,7 @@ class SaveSystem {
   static const String _highestFloorKey = 'highest_floor';
   static const String _checkpointFloorKey = 'checkpoint_floor';
   static const String _upgradesKey = 'upgrades';
+  static const String _unlockedSpellsKey = 'unlocked_spells';
 
   SharedPreferences? _prefs;
   bool _initialized = false;
@@ -90,6 +91,18 @@ class SaveSystem {
     return result;
   }
 
+  /// Save unlocked spells as comma-separated list
+  Future<void> saveUnlockedSpells(List<String> spells) async {
+    if (!_initialized || _prefs == null) return;
+    await _prefs!.setStringList(_unlockedSpellsKey, spells);
+  }
+
+  /// Load unlocked spells
+  List<String> loadUnlockedSpells() {
+    if (!_initialized || _prefs == null) return [];
+    return _prefs!.getStringList(_unlockedSpellsKey) ?? [];
+  }
+
   /// Clear all save data (for testing or reset)
   Future<void> clearAll() async {
     if (!_initialized || _prefs == null) return;
@@ -99,5 +112,6 @@ class SaveSystem {
     await _prefs!.remove(_highestFloorKey);
     await _prefs!.remove(_checkpointFloorKey);
     await _prefs!.remove(_upgradesKey);
+    await _prefs!.remove(_unlockedSpellsKey);
   }
 }

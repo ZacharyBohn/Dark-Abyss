@@ -164,11 +164,8 @@ class UpgradeMenuRenderer {
       // Cost / status (far right)
       final String statusText;
       final Color statusColor;
-      if (isSpell) {
-        statusText = 'LOCKED';
-        statusColor = Colors.white30;
-      } else if (isMaxed) {
-        statusText = 'MAX';
+      if (isMaxed) {
+        statusText = isSpell ? 'OWNED' : 'MAX';
         statusColor = const Color(0xFF88FF88);
       } else if (cost != null) {
         final parts = <String>[];

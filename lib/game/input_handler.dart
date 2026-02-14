@@ -20,6 +20,11 @@ class InputState {
   bool interactPressed = false;
   bool escapePressed = false;
 
+  // Spell casting
+  bool spell1Pressed = false;
+  bool spell2Pressed = false;
+  bool spell3Pressed = false;
+
   Vector2 get moveDirection {
     double x = 0;
     double y = 0;
@@ -44,6 +49,9 @@ class InputState {
     attackPressed = false;
     interactPressed = false;
     escapePressed = false;
+    spell1Pressed = false;
+    spell2Pressed = false;
+    spell3Pressed = false;
   }
 }
 
@@ -126,6 +134,23 @@ class InputHandler {
     if (key == LogicalKeyboardKey.escape) {
       if (isDown) {
         state.escapePressed = true;
+      }
+    }
+
+    // Spell casting (number keys 1-3)
+    if (key == LogicalKeyboardKey.digit1 || key == LogicalKeyboardKey.numpad1) {
+      if (isDown) {
+        state.spell1Pressed = true;
+      }
+    }
+    if (key == LogicalKeyboardKey.digit2 || key == LogicalKeyboardKey.numpad2) {
+      if (isDown) {
+        state.spell2Pressed = true;
+      }
+    }
+    if (key == LogicalKeyboardKey.digit3 || key == LogicalKeyboardKey.numpad3) {
+      if (isDown) {
+        state.spell3Pressed = true;
       }
     }
   }

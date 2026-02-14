@@ -32,8 +32,11 @@ abstract class Enemy extends Entity {
   double hitStunTimer = 0;
   double deathTimer = 0;
 
+  // Status effects
+  double slowTimer = 0;
+  double slowMultiplier = 1.0; // 1.0 = normal, 0.5 = 50% speed
+
   // State
-  bool facingRight = true;
   bool isDead = false;
   double hitFlashTimer = 0;
   bool isLunging = false; // True during attack lunge phase (when damage can be dealt)
@@ -50,17 +53,16 @@ abstract class Enemy extends Entity {
   int currentFloor = 1;
 
   Enemy({
-    required Vector2 position,
-    required double width,
-    required double height,
+    required super.position,
+    required super.width,
+    required super.height,
     required this.maxHealth,
     required this.damage,
     required this.moveSpeed,
     required this.attackRange,
     required this.attackCooldown,
     required this.detectionRange,
-  }) : health = maxHealth,
-       super(position: position, width: width, height: height);
+  }) : health = maxHealth;
 
   void takeDamage(double amount, {Vector2? knockbackDirection}) {
     if (isDead) return;
@@ -89,6 +91,12 @@ abstract class Enemy extends Entity {
     velocity = Vector2.zero();
   }
 
+  /// Apply slow effect to enemy
+  void applySlowEffect(double duration, double slowAmount) {
+    slowTimer = duration;
+    slowMultiplier = slowAmount;
+  }
+
   @override
   void update(double dt) {
     if (isDead) {
@@ -100,6 +108,14 @@ abstract class Enemy extends Entity {
     if (hitFlashTimer > 0) hitFlashTimer -= dt;
     if (hitStunTimer > 0) hitStunTimer -= dt;
     if (attackTimer > 0) attackTimer -= dt;
+
+    // Update slow effect
+    if (slowTimer > 0) {
+      slowTimer -= dt;
+      if (slowTimer <= 0) {
+        slowMultiplier = 1.0;
+      }
+    }
 
     // Don't process AI while stunned
     if (hitStunTimer > 0) {

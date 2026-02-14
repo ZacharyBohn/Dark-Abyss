@@ -40,6 +40,8 @@ class Player extends Entity {
   double spd = playerBaseSPD;
   double maxEnergy = playerBaseEnergy;
   double currentEnergy = playerBaseEnergy;
+  double maxMana = 100.0;
+  double currentMana = 100.0;
   int level = 1;
   int xp = 0;
 
@@ -334,6 +336,10 @@ class Player extends Entity {
       }
     }
 
+    // Regenerate mana (3 mana per second)
+    currentMana += dt * 3.0;
+    if (currentMana > maxMana) currentMana = maxMana;
+
     // Apply velocity
     position.x += velocity.x * dt;
     position.y += velocity.y * dt;
@@ -486,6 +492,14 @@ class Player extends Entity {
   void addEnergy(double amount) {
     currentEnergy += amount;
     if (currentEnergy > maxEnergy) currentEnergy = maxEnergy;
+  }
+
+  bool consumeMana(double amount) {
+    if (currentMana >= amount) {
+      currentMana -= amount;
+      return true;
+    }
+    return false;
   }
 
   bool get isDead => currentHP <= 0;

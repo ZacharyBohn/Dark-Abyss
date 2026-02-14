@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 
 class AudioManager {
   static final AudioManager _instance = AudioManager._internal();
@@ -50,6 +51,7 @@ class AudioManager {
   }
 
   Future<void> pauseMusic() async {
+    debugPrint('pausing music?');
     await _musicPlayer.pause();
   }
 
