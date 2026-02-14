@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import '../audio/audio_manager.dart';
 import '../combat/combat_system.dart';
+import '../data/constants.dart';
 import '../dungeon/exit_portal.dart';
 import '../dungeon/floor_generator.dart';
 import '../dungeon/platform.dart';
@@ -14,6 +15,8 @@ import '../entities/pickup.dart';
 import '../entities/player.dart';
 import '../hub/hub_room.dart';
 import '../hub/vendor.dart';
+import '../ui/menu_system.dart';
+import '../upgrades/upgrade_manager.dart';
 import '../utils/math_utils.dart';
 import 'camera.dart';
 import 'game_state.dart';
@@ -23,6 +26,7 @@ enum _TransitionType {
   nextFloor,
   enterDungeon,
   returnToHub,
+  hubReturn, // Voluntary return via checkpoint portal (no gold loss)
 }
 
 class GameWorld {
@@ -55,6 +59,10 @@ class GameWorld {
   final FloorGenerator _floorGenerator = FloorGenerator();
   DungeonFloor? _currentDungeon;
   ExitPortal? exitPortal;
+  ExitPortal? hubReturnPortal; // Checkpoint portal (appears every N floors)
+
+  // Dungeon progress
+  int dungeonCheckpointFloor = 1; // Floor to start next run on
 
   // World bounds
   double worldWidth = 1600;
@@ -83,6 +91,10 @@ class GameWorld {
   double _deathTimer = 0;
   static const double _deathDelay = 1.5;
 
+  // Upgrade system
+  final UpgradeManager upgradeManager = UpgradeManager();
+  MenuState? activeMenu;
+
   GameWorld() {
     // Wire up currency manager to combat system
     combat.currencyManager = currencyManager;
@@ -90,13 +102,19 @@ class GameWorld {
     // Auto-save when currency changes
     currencyManager.onCurrencyChanged = _saveCurrency;
 
-    _loadHub();
+    // Auto-save when upgrades change
+    upgradeManager.onUpgradesChanged = _saveUpgrades;
+
+    // Start on start screen instead of hub (music will start when player enters hub)
+    gameState = GameState.startScreen;
   }
 
   /// Initialize async components (call from game screen)
   Future<void> initializeAsync() async {
     await saveSystem.initialize();
     saveSystem.loadCurrency(currencyManager);
+    dungeonCheckpointFloor = saveSystem.getCheckpointFloor();
+    upgradeManager.loadFromSave(saveSystem.loadUpgrades());
   }
 
   void _saveCurrency() {
@@ -105,10 +123,18 @@ class GameWorld {
     }
   }
 
+  void _saveUpgrades() {
+    if (saveSystem.isInitialized) {
+      saveSystem.saveUpgrades(upgradeManager.toSaveData());
+    }
+  }
+
   void _loadHub() {
     gameState = GameState.hub;
     currentFloor = 0;
     _deathHandled = false;
+    hubReturnPortal = null;
+    activeMenu = null;
 
     _hubRoom = HubRoom.generate();
 
@@ -121,6 +147,9 @@ class GameWorld {
     worldHeight = HubRoom.hubHeight;
 
     player = Player(position: _hubRoom!.spawnPoint.copy());
+
+    // Apply upgrades to player in hub
+    upgradeManager.applyUpgrades(player);
 
     exitPortal = _hubRoom!.dungeonPortal;
 
@@ -145,12 +174,35 @@ class GameWorld {
     _pendingTransition = _TransitionType.returnToHub;
   }
 
+  /// Voluntary return to hub via checkpoint portal (no gold loss, saves progress)
+  void _voluntaryHubReturn() {
+    // Award floor completion bonus before leaving
+    final bonus = LootTable.getFloorCompletionBonus(currentFloor);
+    currencyManager.addGold(bonus);
+
+    // Save checkpoint so next run starts on the next floor
+    dungeonCheckpointFloor = currentFloor + 1;
+    saveSystem.saveCheckpointFloor(dungeonCheckpointFloor);
+    saveSystem.saveHighestFloor(currentFloor);
+
+    isTransitioning = true;
+    transitionDuration = 1.0;
+    transitionTimer = 1.0;
+    _pendingTransition = _TransitionType.hubReturn;
+  }
+
+  /// Whether this floor has a checkpoint (hub return) portal
+  bool get isCheckpointFloor =>
+      currentFloor > 0 && currentFloor % checkpointFloorInterval == 0;
+
   /// Text to display during transitions (used by game painter)
   String get transitionText {
     switch (_pendingTransition) {
       case _TransitionType.enterDungeon:
         return 'Entering the Abyss...';
       case _TransitionType.returnToHub:
+        return 'Returning to Hub...';
+      case _TransitionType.hubReturn:
         return 'Returning to Hub...';
       case _TransitionType.nextFloor:
         return 'Floor ${currentFloor + 1}';
@@ -179,9 +231,25 @@ class GameWorld {
     // Create player at spawn point
     player = Player(position: _currentDungeon!.playerSpawn.copy());
 
+    // Apply upgrades to player
+    upgradeManager.applyUpgrades(player);
+
     // Create exit portal
     exitPortal = ExitPortal(position: _currentDungeon!.exitPosition.copy());
     exitPortal!.isUnlocked = false;
+
+    // On checkpoint floors, create a hub return portal offset from exit
+    if (floor % checkpointFloorInterval == 0) {
+      hubReturnPortal = ExitPortal(
+        position: Vector2(
+          _currentDungeon!.exitPosition.x - 120,
+          _currentDungeon!.exitPosition.y,
+        ),
+      );
+      hubReturnPortal!.isUnlocked = false;
+    } else {
+      hubReturnPortal = null;
+    }
   }
 
   void _goToNextFloor() {
@@ -204,7 +272,7 @@ class GameWorld {
         break;
       case _TransitionType.enterDungeon:
         gameState = GameState.dungeon;
-        _generateFloor(1);
+        _generateFloor(dungeonCheckpointFloor);
         camera.snapTo(player.position);
         AudioManager().playDungeonMusic();
         break;
@@ -212,19 +280,80 @@ class GameWorld {
         _loadHub();
         AudioManager().playHubMusic();
         break;
+      case _TransitionType.hubReturn:
+        _loadHub();
+        AudioManager().playHubMusic();
+        break;
     }
   }
 
   void handleInput(InputState input, double dt) {
+    // Start screen - any key press starts the game
+    if (gameState == GameState.startScreen) {
+      // Check if any key is pressed
+      final anyKeyPressed =
+          input.jumpPressed ||
+          input.dashPressed ||
+          input.attackPressed ||
+          input.interactPressed ||
+          input.up ||
+          input.down ||
+          input.left ||
+          input.right ||
+          input.escapePressed;
+
+      if (anyKeyPressed) {
+        _loadHub();
+        AudioManager().playHubMusic();
+      }
+      return; // Don't process other input on start screen
+    }
+
     if (player.isDead) return;
+
+    // Menu state - route input to menu
+    if (gameState == GameState.menu && activeMenu != null) {
+      activeMenu!.handleInput(input);
+      activeMenu!.update(input, dt);
+
+      // Handle escape - close menu
+      if (activeMenu!.requestClose) {
+        gameState = GameState.hub;
+        activeMenu = null;
+      }
+      // Handle purchase
+      else if (activeMenu!.requestPurchase) {
+        final upgrade = activeMenu!.selectedUpgrade;
+        if (upgradeManager.purchase(upgrade, currencyManager)) {
+          // Purchase succeeded, apply upgrades to player
+          upgradeManager.applyUpgrades(player);
+        }
+        activeMenu!.requestPurchase = false;
+      }
+
+      return; // Don't process player input when in menu
+    }
 
     player.handleInput(input, dt);
 
-    // Hub portal interaction (check held state too so holding E works reliably)
-    if (gameState == GameState.hub && !isTransitioning &&
+    // Hub interactions
+    if (gameState == GameState.hub &&
+        !isTransitioning &&
         (input.interactPressed || input.interact)) {
+      // Dungeon portal interaction
       if (exitPortal != null && exitPortal!.isPlayerInRange(player.position)) {
         _enterDungeon();
+        return;
+      }
+
+      // Vendor interaction
+      for (final vendor in vendors) {
+        if (vendor.isPlayerInRange(player.position)) {
+          // Open vendor menu
+          gameState = GameState.menu;
+          activeMenu = MenuState(vendorType: vendor.type);
+          return;
+        }
       }
     }
   }
@@ -239,6 +368,11 @@ class GameWorld {
       currentFps = frameCount / fpsAccumulator;
       frameCount = 0;
       fpsAccumulator = 0;
+    }
+
+    // Don't update game logic on start screen or in menu
+    if (gameState == GameState.startScreen || gameState == GameState.menu) {
+      return;
     }
 
     // Handle floor transition
@@ -306,18 +440,33 @@ class GameWorld {
       exitPortal!.update(dt);
 
       if (gameState == GameState.dungeon) {
-        // Dungeon: unlock portal when all enemies are defeated
+        // Dungeon: unlock portals when all enemies are defeated
         if (!exitPortal!.isUnlocked && enemies.isEmpty) {
           exitPortal!.isUnlocked = true;
+          if (hubReturnPortal != null) {
+            hubReturnPortal!.isUnlocked = true;
+          }
         }
 
-        // Check if player enters unlocked portal
+        // Check if player enters unlocked exit portal
         if (exitPortal!.isUnlocked &&
             exitPortal!.isPlayerInRange(player.position)) {
           _goToNextFloor();
         }
+
+        // Check if player enters unlocked hub return portal
+        if (hubReturnPortal != null &&
+            hubReturnPortal!.isUnlocked &&
+            hubReturnPortal!.isPlayerInRange(player.position)) {
+          _voluntaryHubReturn();
+        }
       }
       // Hub portal interaction is handled in handleInput()
+    }
+
+    // Update hub return portal
+    if (hubReturnPortal != null) {
+      hubReturnPortal!.update(dt);
     }
 
     // Handle collisions
@@ -351,9 +500,17 @@ class GameWorld {
 
       // Ground collision (only when moving down or stationary)
       if (player.velocity.y >= 0 && feetRect.overlaps(platRect)) {
-        // Check if player was above platform
-        if (player.position.y + player.height / 2 - player.velocity.y * 0.017 <=
-            platform.top + 10) {
+        // Check if player was above platform (prevents clipping from below)
+        final wasAbovePlatform =
+            player.position.y + player.height / 2 - player.velocity.y * 0.017 <=
+            platform.top + 10;
+
+        if (wasAbovePlatform) {
+          // One-way platforms: allow drop-through when holding down
+          if (platform.isOneWay && player.isDropping) {
+            continue; // Skip collision - player is dropping through
+          }
+
           player.position.y = platform.top - player.height / 2;
           groundedThisFrame = true;
         }

@@ -61,6 +61,7 @@ const double floorScaling = 0.15; // 15% stronger per floor
 // =============================================================================
 const double xpBase = 50.0;
 const double xpExponent = 1.5;
+const int checkpointFloorInterval = 3; // Return-to-hub portal every N floors
 
 // =============================================================================
 // VISUAL CONSTANTS

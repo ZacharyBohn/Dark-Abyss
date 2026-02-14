@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import '../economy/currency_manager.dart';
@@ -7,6 +8,8 @@ import '../entities/player.dart';
 import '../utils/math_utils.dart';
 import 'damage_numbers.dart';
 import 'particle_system.dart';
+
+final _rng = math.Random();
 
 class CombatSystem {
   final DamageNumberManager damageNumbers = DamageNumberManager();
@@ -38,10 +41,20 @@ class CombatSystem {
         // Hit!
         player.attackHitThisSwing = true;
 
-        final damage = player.attackDamage;
-        final knockbackDir = (enemy.position - player.position).normalized();
+        var damage = player.attackDamage;
+        final isCrit = player.critChance > 0 && _rng.nextDouble() < player.critChance;
+        if (isCrit) {
+          damage *= player.critMultiplier;
+        }
 
+        final knockbackDir = (enemy.position - player.position).normalized();
         enemy.takeDamage(damage, knockbackDirection: knockbackDir);
+
+        // Life steal
+        if (player.lifeStealPercent > 0) {
+          final healAmount = damage * player.lifeStealPercent;
+          player.heal(healAmount);
+        }
 
         // Spawn effects
         final hitPos = Vector2(
@@ -52,13 +65,13 @@ class CombatSystem {
         damageNumbers.spawn(
           hitPos,
           damage,
-          isCritical: player.comboCount >= 3,
+          isCritical: isCrit || player.comboCount >= 3,
         );
 
         particles.spawnHitSparks(
           hitPos,
-          const Color(0xFFFFAA00),
-          count: player.comboCount >= 3 ? 12 : 8,
+          isCrit ? const Color(0xFFFF4400) : const Color(0xFFFFAA00),
+          count: isCrit ? 16 : (player.comboCount >= 3 ? 12 : 8),
         );
 
         // Check if enemy died

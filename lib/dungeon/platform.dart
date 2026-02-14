@@ -6,6 +6,7 @@ class Platform {
   final double width;
   final double height;
   final bool isWall;
+  final bool isOneWay; // Can jump through from below
 
   Platform({
     required this.x,
@@ -13,6 +14,7 @@ class Platform {
     required this.width,
     required this.height,
     this.isWall = false,
+    this.isOneWay = true, // Most platforms are one-way by default
   });
 
   Rect get rect => Rect.fromLTWH(x, y, width, height);

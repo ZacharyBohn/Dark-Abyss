@@ -1,7 +1,7 @@
 # Abyss Runner - Work Tracker
 
-## Current Phase: Phase 6 - Hub/Base Room (COMPLETE)
-## Current Status: READY TO BEGIN PHASE 7
+## Current Phase: Phase 7 - Upgrade System (COMPLETE)
+## Current Status: READY TO BEGIN PHASE 8
 
 ## Upcoming Phases Overview
 | Phase | Focus | Key Deliverable |
@@ -82,20 +82,26 @@
 - [x] 51. Create hub_renderer.dart for vendor NPCs and decorations
 - [x] 52. Add dungeon portal in hub that starts a new run
 - [x] 53. Add return-to-hub on death (lose some gold, keep essence)
-- [ ] 54. **TEST CHECKPOINT 6: Start in hub, enter dungeon, die, return to hub**
+- [x] 54. **TEST CHECKPOINT 6: Start in hub, enter dungeon, die, return to hub**
 
 ### Phase 7: Upgrade System & Vendor Menu
 **Goal**: Button-based upgrade menu accessed via vendors in the hub
-- [ ] 55. Create upgrade.dart with upgrade definitions (stat boosts, abilities)
-- [ ] 56. Create upgrade_manager.dart to track purchased upgrades
-- [ ] 57. Create ui/menu_system.dart for button-based menu infrastructure
-- [ ] 58. Create ui/upgrade_menu.dart with upgrade grid (keyboard navigation)
-- [ ] 59. Create three vendor types: StatVendor, AbilityVendor, SpellVendor
-- [ ] 60. Add interaction prompt when near vendor ("Press E to interact")
-- [ ] 61. Wire vendor interaction to open corresponding upgrade menu
-- [ ] 62. Implement upgrade purchase flow (check currency, apply upgrade, persist)
-- [ ] 63. Add visual indicator for owned upgrades in menu
-- [ ] 64. **TEST CHECKPOINT 7: Interact with vendor, navigate menu with keyboard, buy upgrade**
+- [x] 54a. Add checkpoint floors (every 3 floors, optional hub return portal)
+- [x] 54b. Add dungeon progress tracking (resume from checkpoint on re-entry)
+- [x] 55. Create upgrade.dart with upgrade definitions (stat boosts, abilities)
+- [x] 56. Create upgrade_manager.dart to track purchased upgrades
+- [x] 57. Create ui/menu_system.dart for button-based menu infrastructure
+- [x] 58. Create ui/upgrade_menu.dart with upgrade grid (keyboard navigation)
+- [x] 59. Create three vendor types: StatVendor, AbilityVendor, SpellVendor
+- [x] 60. Add interaction prompt when near vendor ("Press E to interact")
+- [x] 61. Wire vendor interaction to open corresponding upgrade menu
+- [x] 62. Implement upgrade purchase flow (check currency, apply upgrade, persist)
+- [x] 63. Add visual indicator for owned upgrades in menu
+- [x] 64. Add Escape key to close menus
+- [x] 65. Apply upgrades to player stats (HP, ATK, SPD, dash, jumps, etc.)
+- [x] 66. Add combat upgrade effects (life steal, critical strikes)
+- [x] 67. Persist purchased upgrades and dungeon checkpoint to save file
+- [x] 68. **TEST CHECKPOINT 7: Interact with vendor, navigate menu with keyboard, buy upgrade**
 
 ### Phase 8: Magic System
 **Goal**: Add mana resource and spellcasting with purchasable spells
@@ -326,6 +332,24 @@
 - Context-sensitive HUD (shows "HUB" vs "Floor: N", hides enemy count in hub)
 - Context-sensitive controls hint (shows E: Interact in hub)
 - E key added to input system for interactions
+
+## Features Implemented (Phase 7)
+- **Checkpoint portals every 3 floors** (floors 3, 6, 9...): Optional hub return portal alongside normal exit portal
+- **Dungeon progress tracking**: Checkpoint floor saved, next dungeon entry resumes from last checkpoint (e.g., floor 4 after clearing floor 3)
+- **Voluntary hub return**: Via checkpoint portal, awards floor completion bonus, saves progress, NO gold loss
+- **Death behavior**: Return to hub with 50% gold loss, but keep checkpoint progress
+- **Upgrade system**: 5 stat upgrades (Vitality, Power, Agility, Endurance, Recovery) with 3-5 tiers each
+- **Ability unlocks**: 5 abilities (Double Jump, Air Dash, Combo Master, Life Steal, Critical Strike) purchased with essence
+- **Spell placeholders**: 3 spell slots marked "Coming Soon" (Phase 8 implementation)
+- **Vendor interaction**: Press E near vendors in hub to open category-specific upgrade menu
+- **Upgrade menu**: Keyboard-navigated (W/S for selection, E/J to purchase, Esc to close)
+- **Visual feedback**: Selected row highlighted, tier pips showing progress, cost/affordability indicators, MAX/LOCKED status
+- **Stat application**: Upgrades apply to player stats (HP, attack multiplier, move speed, dash cooldown, energy regen)
+- **Combat effects**: Life steal heals on hit, critical strikes roll for 2x damage with visual feedback (orange sparks)
+- **Movement upgrades**: Double jump and air dash functional, combo master enables 4th hit
+- **Persistence**: Purchased upgrades and checkpoint floor saved to SharedPreferences, load on startup
+- **HUD updates**: Floor display shows "(checkpoint!)" on checkpoint floors, hub portal shows resume floor
+- **Portal visuals**: Hub return portal rendered in cyan color, distinct from green exit portal
 
 ## Rabbit Holes / Issues to Resolve
 (None yet)

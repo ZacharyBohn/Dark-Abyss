@@ -70,6 +70,11 @@ class Player extends Entity {
   static const double wallSlideSpeed = 100.0;
   static const double wallJumpHorizontalForce = 350.0;
 
+  // Drop-through platform
+  double dropThroughTimer = 0;
+  bool isDropping = false;
+  static const double dropThroughHoldTime = 0.7;
+
   // Coyote time (allows jump shortly after leaving platform)
   double coyoteTimer = 0;
   static const double coyoteTime = 0.1;
@@ -91,7 +96,16 @@ class Player extends Entity {
   int comboCount = 0;
   double comboTimer = 0;
   static const double comboWindow = 0.5;
-  static const int maxCombo = 3;
+  int maxCombo = 3;
+
+  // Upgrade-applied stats
+  double attackMultiplier = 1.0;
+  double lifeStealPercent = 0.0;
+  double critChance = 0.0;
+  double critMultiplier = 2.0;
+  double energyRegenRate = 1.0;
+  bool canAirDash = false;
+  double dashCooldownMultiplier = 1.0;
 
   // Hit state
   bool isHit = false;
@@ -108,6 +122,17 @@ class Player extends Entity {
   void handleInput(InputState input, double dt) {
     // Clear just-pressed flags at end of frame
     // (they're consumed by the actions below)
+
+    // Drop-through mechanic - hold down while grounded
+    if (input.down && isGrounded && !isDashing) {
+      dropThroughTimer += dt;
+      if (dropThroughTimer >= dropThroughHoldTime) {
+        isDropping = true;
+        dropThroughTimer = 0;
+      }
+    } else {
+      dropThroughTimer = 0;
+    }
 
     // Horizontal movement (unless dashing)
     if (!isDashing) {
@@ -138,9 +163,11 @@ class Player extends Entity {
       }
     }
 
-    // Dash
+    // Dash (block air dash unless upgrade owned)
     if (input.dashPressed && canDash && !isDashing) {
-      _startDash(input);
+      if (isGrounded || canAirDash) {
+        _startDash(input);
+      }
     }
 
     // Attack
@@ -227,6 +254,11 @@ class Player extends Entity {
   void update(double dt) {
     wasGrounded = isGrounded;
 
+    // Clear drop-through flag after leaving ground
+    if (!isGrounded) {
+      isDropping = false;
+    }
+
     // Update timers
     if (jumpBufferTimer > 0) jumpBufferTimer -= dt;
     if (coyoteTimer > 0) coyoteTimer -= dt;
@@ -283,7 +315,7 @@ class Player extends Entity {
       if (dashTimer <= 0) {
         isDashing = false;
         hasIFrames = false;
-        dashCooldownTimer = dashCooldown;
+        dashCooldownTimer = dashCooldown * dashCooldownMultiplier;
         // Reduce velocity after dash
         velocity = velocity * 0.3;
       }
@@ -413,11 +445,11 @@ class Player extends Entity {
     );
   }
 
-  /// Get attack damage based on combo count
+  /// Get attack damage based on combo count and upgrades
   double get attackDamage {
-    final baseDamage = atk * 10;
-    final comboMultiplier = 1.0 + (comboCount - 1) * 0.3;
-    return baseDamage * comboMultiplier;
+    final baseDamage = atk * 10 * attackMultiplier;
+    final comboMult = 1.0 + (comboCount - 1) * 0.3;
+    return baseDamage * comboMult;
   }
 
   void takeDamage(double amount, {Vector2? knockbackFrom}) {

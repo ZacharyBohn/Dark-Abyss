@@ -63,6 +63,7 @@ class FloorGenerator {
       y: totalHeight - 20,
       width: totalWidth,
       height: 40,
+      isOneWay: false, // Solid floor
     ));
 
     // Add ceiling
@@ -71,6 +72,7 @@ class FloorGenerator {
       y: -20,
       width: totalWidth,
       height: 20,
+      isOneWay: false, // Solid ceiling
     ));
 
     // Add left wall
@@ -80,6 +82,7 @@ class FloorGenerator {
       width: 20,
       height: totalHeight,
       isWall: true,
+      isOneWay: false, // Solid wall
     ));
 
     // Add right wall
@@ -89,6 +92,7 @@ class FloorGenerator {
       width: 20,
       height: totalHeight,
       isWall: true,
+      isOneWay: false, // Solid wall
     ));
 
     return DungeonFloor(

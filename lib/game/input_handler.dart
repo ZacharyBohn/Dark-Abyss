@@ -18,6 +18,7 @@ class InputState {
   bool dashPressed = false;
   bool attackPressed = false;
   bool interactPressed = false;
+  bool escapePressed = false;
 
   Vector2 get moveDirection {
     double x = 0;
@@ -42,6 +43,7 @@ class InputState {
     dashPressed = false;
     attackPressed = false;
     interactPressed = false;
+    escapePressed = false;
   }
 }
 
@@ -118,6 +120,13 @@ class InputHandler {
     if (key == LogicalKeyboardKey.keyL || key == LogicalKeyboardKey.keyX) {
       state.special = isDown || (!isUp && state.special);
       if (isUp) state.special = false;
+    }
+
+    // Escape - close menus
+    if (key == LogicalKeyboardKey.escape) {
+      if (isDown) {
+        state.escapePressed = true;
+      }
     }
   }
 }

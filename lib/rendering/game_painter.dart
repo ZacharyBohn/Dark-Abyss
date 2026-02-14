@@ -4,6 +4,8 @@ import '../data/constants.dart';
 import '../dungeon/platform.dart';
 import '../game/game_state.dart';
 import '../game/game_world.dart';
+import '../ui/start_screen.dart';
+import '../ui/upgrade_menu.dart';
 import '../utils/math_utils.dart';
 import 'effects_renderer.dart';
 import 'enemy_renderer.dart';
@@ -18,11 +20,19 @@ class GamePainter extends CustomPainter {
   final EffectsRenderer _effectsRenderer = EffectsRenderer();
   final PortalRenderer _portalRenderer = PortalRenderer();
   final HubRenderer _hubRenderer = HubRenderer();
+  final UpgradeMenuRenderer _menuRenderer = UpgradeMenuRenderer();
+  final StartScreenRenderer _startScreenRenderer = StartScreenRenderer();
 
   GamePainter({required this.world});
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Start screen - render and return early
+    if (world.gameState == GameState.startScreen) {
+      _startScreenRenderer.render(canvas, size);
+      return;
+    }
+
     final cameraOffset = world.camera.offset;
 
     // Draw background gradient based on floor
@@ -33,6 +43,16 @@ class GamePainter extends CustomPainter {
 
     // Draw exit portal (behind entities)
     _portalRenderer.render(canvas, world.exitPortal, cameraOffset);
+
+    // Draw hub return portal with distinct cyan color
+    if (world.hubReturnPortal != null) {
+      _portalRenderer.render(
+        canvas,
+        world.hubReturnPortal,
+        cameraOffset,
+        colorOverride: const Color(0xFF00FFFF),
+      );
+    }
 
     // Draw hub elements (vendors, decorations)
     if (world.gameState == GameState.hub) {
@@ -59,10 +79,13 @@ class GamePainter extends CustomPainter {
     // Draw hub portal prompt
     if (world.gameState == GameState.hub && world.exitPortal != null) {
       if (world.exitPortal!.isPlayerInRange(world.player.position)) {
+        final floorLabel = world.dungeonCheckpointFloor > 1
+            ? 'Press E to Enter Dungeon (Floor ${world.dungeonCheckpointFloor})'
+            : 'Press E to Enter Dungeon';
         final promptPainter = TextPainter(
-          text: const TextSpan(
-            text: 'Press E to Enter Dungeon',
-            style: TextStyle(
+          text: TextSpan(
+            text: floorLabel,
+            style: const TextStyle(
               color: Color(0xFF00FF88),
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -81,6 +104,33 @@ class GamePainter extends CustomPainter {
       }
     }
 
+    // Draw hub return portal prompt
+    if (world.gameState == GameState.dungeon && world.hubReturnPortal != null &&
+        world.hubReturnPortal!.isUnlocked) {
+      final portal = world.hubReturnPortal!;
+      final portalScreenX = portal.position.x - cameraOffset.x;
+      final portalScreenY = portal.position.y - cameraOffset.y;
+
+      // Label above portal
+      final labelPainter = TextPainter(
+        text: const TextSpan(
+          text: 'RETURN TO HUB',
+          style: TextStyle(
+            color: Color(0xFF00FFFF),
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'monospace',
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      labelPainter.layout();
+      labelPainter.paint(
+        canvas,
+        Offset(portalScreenX - labelPainter.width / 2, portalScreenY - 60),
+      );
+    }
+
     // Draw HUD (on top of everything)
     _drawHUD(canvas, size);
 
@@ -92,6 +142,17 @@ class GamePainter extends CustomPainter {
     // Draw transition overlay
     if (world.isTransitioning) {
       _drawTransition(canvas, size);
+    }
+
+    // Draw upgrade menu overlay
+    if (world.gameState == GameState.menu && world.activeMenu != null) {
+      _menuRenderer.render(
+        canvas,
+        size,
+        world.activeMenu!,
+        world.upgradeManager,
+        world.currencyManager,
+      );
     }
   }
 
@@ -302,9 +363,15 @@ class GamePainter extends CustomPainter {
       hubText.layout();
       hubText.paint(canvas, const Offset(10, 10));
     } else {
+      // Show floor number with checkpoint indicator
+      final floorsUntilCheckpoint =
+          checkpointFloorInterval - (world.currentFloor % checkpointFloorInterval);
+      final checkpointHint = floorsUntilCheckpoint == checkpointFloorInterval
+          ? ' (checkpoint!)' // We're on a checkpoint floor
+          : '';
       final floorText = TextPainter(
         text: TextSpan(
-          text: 'Floor: ${world.currentFloor}',
+          text: 'Floor: ${world.currentFloor}$checkpointHint',
           style: TextStyle(
             color: getFloorPrimaryColor(world.currentFloor),
             fontSize: 18,

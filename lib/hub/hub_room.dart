@@ -30,6 +30,7 @@ class HubRoom {
       y: hubHeight - 40,
       width: hubWidth,
       height: 40,
+      isOneWay: false, // Solid floor
     ));
 
     // === WALLS ===
@@ -39,6 +40,7 @@ class HubRoom {
       width: 20,
       height: hubHeight,
       isWall: true,
+      isOneWay: false, // Solid wall
     ));
     platforms.add(Platform(
       x: hubWidth,
@@ -46,6 +48,7 @@ class HubRoom {
       width: 20,
       height: hubHeight,
       isWall: true,
+      isOneWay: false, // Solid wall
     ));
 
     // === CEILING ===
@@ -54,6 +57,7 @@ class HubRoom {
       y: -20,
       width: hubWidth,
       height: 20,
+      isOneWay: false, // Solid ceiling
     ));
 
     // === VENDOR PLATFORMS ===

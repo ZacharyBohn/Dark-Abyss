@@ -6,7 +6,12 @@ import '../dungeon/exit_portal.dart';
 import '../utils/math_utils.dart';
 
 class PortalRenderer {
-  void render(Canvas canvas, ExitPortal? portal, Vector2 cameraOffset) {
+  void render(
+    Canvas canvas,
+    ExitPortal? portal,
+    Vector2 cameraOffset, {
+    Color? colorOverride,
+  }) {
     if (portal == null) return;
 
     final screenX = portal.position.x - cameraOffset.x;
@@ -17,8 +22,8 @@ class PortalRenderer {
     final Color baseColor;
     final Color glowColor;
     if (portal.isUnlocked) {
-      baseColor = const Color(0xFF00FF88);
-      glowColor = const Color(0xFF00FF88);
+      baseColor = colorOverride ?? const Color(0xFF00FF88);
+      glowColor = colorOverride ?? const Color(0xFF00FF88);
     } else {
       baseColor = const Color(0xFF666666);
       glowColor = const Color(0xFF444444);
